@@ -18,6 +18,20 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  updateDoc,
+  getDoc,
+  setDoc,
+  collection
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const appFirebase = initializeApp(firebaseConfig);
+const db = getFirestore(appFirebase);
+
+
 document.body.insertAdjacentHTML("beforeend", `
   <div id="app" style="width:100%; max-width:700px;"></div>
 `);
