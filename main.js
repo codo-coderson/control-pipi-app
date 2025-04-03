@@ -331,4 +331,180 @@ async function mostrarVistaClase(clase) {
           }
         }
         await actualizarSalidas(ref, docData, fecha, salidas);
-        // Actual
+        // Actualiza el botón y el label correspondientes
+        const btnId = `${alumnoId}_btn_${hora}`;
+        const labelId = `${alumnoId}_label_${hora}`;
+        const buttonEl = document.getElementById(btnId);
+        const labelEl = document.getElementById(labelId);
+        if (salidas.find(s => s.hora === hora)) {
+          buttonEl.style.backgroundColor = "#0044cc";
+          buttonEl.style.color = "#ff0";
+          buttonEl.style.border = "1px solid #003399";
+          labelEl.textContent = usuarioActual.replace("@salesianas.org", "");
+        } else {
+          buttonEl.style.backgroundColor = "#eee";
+          buttonEl.style.color = "#000";
+          buttonEl.style.border = "1px solid #ccc";
+          labelEl.textContent = "";
+        }
+      };
+    });
+  }
+  app.appendChild(crearBotonVolver(mostrarVistaClases));
+}
+
+// ------------------------------------------------------------------
+// 4) CARGA DE EXCEL Y BORRADO DE DATOS PREVIOS
+// ------------------------------------------------------------------
+
+// Funciones para borrar documentos de alumnos y profesores
+async function borrarDatosAlumnos() {
+  const cursos = Object.keys(alumnosPorClase);
+  for (const curso of cursos) {
+    const collRef = collection(db, curso);
+    const snapshot = await getDocs(collRef);
+    for (const docSnap of snapshot.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+  }
+  alumnosPorClase = {};
+  clases = [];
+}
+
+async function borrarDatosProfesores() {
+  const collRef = collection(db, "profesores");
+  const snapshot = await getDocs(collRef);
+  for (const docSnap of snapshot.docs) {
+    await deleteDoc(docSnap.ref);
+  }
+}
+
+// Función para parsear archivos Excel usando SheetJS
+function parseExcelFile(file, hasHeaders, callback) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = e.target.result;
+    const workbook = XLSX.read(data, { type: 'binary' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    let json;
+    if (hasHeaders) {
+      json = XLSX.utils.sheet_to_json(sheet);
+    } else {
+      json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    }
+    callback(json);
+  };
+  reader.readAsBinaryString(file);
+}
+
+// Procesar Excel de Alumnos (cabeceras: "Alumno" y "Curso")
+// Al finalizar, se actualiza el documento meta "meta/clases" para guardar la lista de clases
+async function procesarAlumnos(data) {
+  console.log("Datos parseados de alumnos:", data);
+  if (!confirm("Se borrarán los datos anteriores de alumnos (incluidas las salidas acumuladas). ¿Continuar?")) {
+    return;
+  }
+  await borrarDatosAlumnos();
+  
+  data.forEach(async (row) => {
+    const nombre = row.Alumno;
+    const curso = row.Curso;
+    if (!nombre || !curso) {
+      console.log("Fila sin 'Alumno' o 'Curso':", row);
+      return;
+    }
+    if (!alumnosPorClase[curso]) {
+      alumnosPorClase[curso] = [];
+    }
+    if (!alumnosPorClase[curso].includes(nombre)) {
+      alumnosPorClase[curso].push(nombre);
+    }
+    const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+    const ref = doc(db, curso, alumnoId);
+    const docSnap = await getDoc(ref);
+    if (!docSnap.exists()) {
+      await setDoc(ref, { 
+        nombre, 
+        historial: [],
+        ultimaSalida: 0,
+        totalAcumulado: 0
+      });
+    }
+  });
+  clases = Object.keys(alumnosPorClase);
+  // Actualizar documento meta
+  await setDoc(doc(db, "meta", "clases"), { clases: clases });
+  alert("Datos de alumnos cargados. Clases encontradas:\n" + clases.join(", "));
+}
+
+// Procesar Excel de Profesores (sin cabeceras: columna 1 = "Apellidos, Nombre", columna 2 = "Email")
+async function procesarProfesores(rows) {
+  console.log("Datos parseados de profesores:", rows);
+  if (!confirm("Se borrarán los datos anteriores de profesores. ¿Continuar?")) {
+    return;
+  }
+  await borrarDatosProfesores();
+  
+  rows.forEach(async (cols) => {
+    if (!cols || cols.length < 2) {
+      console.log("Fila sin suficientes columnas:", cols);
+      return;
+    }
+    const nombreCompleto = cols[0];
+    const email = cols[1];
+    if (!nombreCompleto || !email) {
+      console.log("Fila sin nombre o email:", cols);
+      return;
+    }
+    const ref = doc(db, "profesores", email);
+    const docSnap = await getDoc(ref);
+    if (!docSnap.exists()) {
+      await setDoc(ref, { nombreCompleto, email });
+    }
+  });
+  alert("Datos de profesores cargados.");
+}
+
+// Vista para cargar archivos Excel
+function mostrarCargaExcels() {
+  updateHeader();
+  app.innerHTML = `
+    <h2>⚙️ Carga de datos desde Excel</h2>
+    <div>
+      <h3>Alumnos (con cabeceras "Alumno" y "Curso")</h3>
+      <input type="file" id="fileAlumnos" accept=".xlsx,.xls" />
+      <button id="cargarAlumnos">Cargar Alumnos</button>
+    </div>
+    <div style="margin-top: 1rem;">
+      <h3>Profesores (sin cabeceras)</h3>
+      <input type="file" id="fileProfesores" accept=".xlsx,.xls" />
+      <button id="cargarProfesores">Cargar Profesores</button>
+    </div>
+    <button id="volverMenu" style="margin-top:2rem;">🔙 Volver</button>
+  `;
+  document.getElementById("volverMenu").onclick = mostrarMenuPrincipal;
+  
+  document.getElementById("cargarAlumnos").onclick = () => {
+    const fileInput = document.getElementById("fileAlumnos");
+    if (fileInput.files.length === 0) {
+      alert("Selecciona un archivo de alumnos.");
+      return;
+    }
+    const file = fileInput.files[0];
+    parseExcelFile(file, true, procesarAlumnos);
+  };
+  document.getElementById("cargarProfesores").onclick = () => {
+    const fileInput = document.getElementById("fileProfesores");
+    if (fileInput.files.length === 0) {
+      alert("Selecciona un archivo de profesores.");
+      return;
+    }
+    const file = fileInput.files[0];
+    parseExcelFile(file, false, procesarProfesores);
+  };
+}
+
+// ------------------------------------------------------------------
+// FIN: onAuthStateChanged gestiona la vista inicial
+// ------------------------------------------------------------------
