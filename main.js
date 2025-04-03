@@ -152,6 +152,24 @@ function mostrarMenuPrincipal() {
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
+
+function mostrarVistaClases() {
+  let htmlClases = `<h2>Selecciona una clase</h2><div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
+  clases.forEach(clase => {
+    htmlClases += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
+  });
+  htmlClases += `</div>`;
+  app.innerHTML = htmlClases;
+  document.querySelectorAll(".clase-btn").forEach(btn => {
+    btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
+  });
+  // Agregamos un botón de "Volver"
+  app.appendChild(crearBotonVolver(mostrarMenuPrincipal));
+}
+window.mostrarVistaClases = mostrarVistaClases;
+
+
+
 // ------------------------------------------------------------------
 // 3) VISTA DE CLASES Y REGISTRO DE SALIDAS
 // ------------------------------------------------------------------
