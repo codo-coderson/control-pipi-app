@@ -48,11 +48,11 @@ const app = document.getElementById("app");
 
 // == Variables globales ==
 let alumnosPorClase = {};   // { "Curso": [ "Alumno", ... ] }
-let clases = [];            // Array con los cursos (por ejemplo, "1ESO A", "Bachillerato B", etc.)
-let usuarioActual = null;   // Se asignará el email del usuario logueado
+let clases = [];            // Ej.: ["1ESO A", "Bachillerato B", …]
+let usuarioActual = null;   // Se asigna al loguearse
 
 // ------------------------------------------------------------------
-// Función para actualizar el header con email, hora del sistema y enlace para cerrar sesión
+// Función para actualizar el header (email, hora del sistema, cerrar sesión)
 // ------------------------------------------------------------------
 function updateHeader() {
   let displayName = usuarioActual;
@@ -82,9 +82,9 @@ function updateHeader() {
 setInterval(updateHeader, 1000); // Actualiza la hora cada segundo
 
 // ------------------------------------------------------------------
-// Función para cargar datos desde Firestore (datos permanentes)
-// Se asume que al importar el Excel se actualiza el documento meta "meta/clases" con el array de clases
-// y que cada clase es una colección con documentos de alumnos (cada uno con al menos el campo "nombre")
+// Carga de datos permanentes desde Firestore
+// Se asume que, al importar el Excel de alumnos, se actualiza el documento meta "meta/clases"
+// con la lista de cursos. Aquí leemos ese documento y, para cada curso, cargamos sus alumnos.
 async function loadDataFromFirestore() {
   try {
     const metaRef = doc(db, "meta", "clases");
@@ -94,20 +94,20 @@ async function loadDataFromFirestore() {
     } else {
       clases = [];
     }
-    // Para cada clase, se recuperan los alumnos
-    for (const clase of clases) {
-      const collRef = collection(db, clase);
+    // Para cada curso, recuperamos los alumnos
+    for (const curso of clases) {
+      const collRef = collection(db, curso);
       const snapshot = await getDocs(collRef);
-      alumnosPorClase[clase] = [];
+      alumnosPorClase[curso] = [];
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        if (data.nombre && !alumnosPorClase[clase].includes(data.nombre)) {
-          alumnosPorClase[clase].push(data.nombre);
+        if (data.nombre && !alumnosPorClase[curso].includes(data.nombre)) {
+          alumnosPorClase[curso].push(data.nombre);
         }
       });
     }
   } catch (err) {
-    console.error("Error loading data:", err);
+    console.error("Error al cargar datos:", err);
   }
 }
 
@@ -171,7 +171,7 @@ onAuthStateChanged(auth, (user) => {
 // ------------------------------------------------------------------
 async function mostrarMenuPrincipal() {
   updateHeader();
-  // Cargar datos permanentes de Firestore
+  // Cargar datos desde Firestore (si ya se importaron previamente)
   await loadDataFromFirestore();
   app.innerHTML = `
     <h2>Menú Principal</h2>
@@ -241,8 +241,8 @@ async function checkAndResetSalidas(docData, ref) {
   return docData;
 }
 
-// Función que genera la tarjeta de un alumno con botones para marcar las salidas
-// Cada botón se renderiza con inline styles según su estado, y tiene un span al lado para mostrar el nombre del profesor
+// Función que genera la tarjeta de un alumno
+// Cada botón se muestra con estilo según su estado; al lado aparece (si activo) el nombre del profesor.
 function alumnoCardHTML(nombre, salidas = [], ultimaSalida = 0, totalAcumulado = 0) {
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   const botones = Array.from({ length: 6 }, (_, i) => {
@@ -253,8 +253,8 @@ function alumnoCardHTML(nombre, salidas = [], ultimaSalida = 0, totalAcumulado =
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
       : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
     return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
-              <button class="hour-button" id="${alumnoId}_btn_${hora}" data-alumno="${alumnoId}" data-hora="${hora}" style="${style}">${hora}</button>
-              <span class="teacher-label" id="${alumnoId}_label_${hora}" style="font-size: 0.8rem; margin-left: 0.3rem;">${activa ? salida.usuario.replace("@salesianas.org", "") : ""}</span>
+              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${style}">${hora}</button>
+              <span class="teacher-label" style="font-size: 0.8rem; margin-left: 0.3rem;">${activa ? salida.usuario.replace("@salesianas.org", "") : ""}</span>
             </div>`;
   }).join("");
   return `<div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
@@ -286,6 +286,56 @@ function crearBotonVolver(callback) {
   return btn;
 }
 
+// Nueva función para renderizar la tarjeta de un alumno de forma independiente.
+// Relee la información de Firestore y reconfigura los listeners de los botones.
+async function renderAlumno(tarjeta, ref, alumnoId, nombre) {
+  const fecha = getFechaHoy();
+  let docSnap = await getDoc(ref);
+  if (!docSnap.exists()) {
+    await setDoc(ref, { 
+      nombre, 
+      historial: [],
+      ultimaSalida: 0,
+      totalAcumulado: 0
+    });
+    docSnap = await getDoc(ref);
+  }
+  let docData = docSnap.data();
+  docData = await checkAndResetSalidas(docData, ref);
+  const record = docData.historial?.find(d => d.fecha === fecha);
+  let salidas = record ? record.salidas : [];
+  
+  tarjeta.innerHTML = alumnoCardHTML(nombre, salidas, docData.ultimaSalida || 0, docData.totalAcumulado || 0);
+  
+  // Para cada botón, asignamos un listener fresco:
+  tarjeta.querySelectorAll(".hour-button").forEach(btn => {
+    btn.onclick = async () => {
+      const hora = parseInt(btn.dataset.hora);
+      // Releer datos actualizados
+      let updatedSnap = await getDoc(ref);
+      let updatedData = updatedSnap.data();
+      updatedData = await checkAndResetSalidas(updatedData, ref);
+      let recordUpdated = updatedData.historial?.find(d => d.fecha === fecha);
+      let currentSalidas = recordUpdated ? recordUpdated.salidas : [];
+      let existing = currentSalidas.find(s => s.hora === hora);
+      if (!existing) {
+        currentSalidas.push({ hora, usuario: usuarioActual });
+      } else {
+        if (existing.usuario === usuarioActual) {
+          currentSalidas = currentSalidas.filter(s => s.hora !== hora);
+        } else {
+          alert("No puedes desmarcar una salida registrada por otro usuario.");
+          return;
+        }
+      }
+      await actualizarSalidas(ref, updatedData, fecha, currentSalidas);
+      // Re-renderiza la tarjeta con la información actualizada
+      await renderAlumno(tarjeta, ref, alumnoId, nombre);
+    };
+  });
+}
+
+// Función que muestra la vista de una clase
 async function mostrarVistaClase(clase) {
   updateHeader();
   const fecha = getFechaHoy();
@@ -296,62 +346,13 @@ async function mostrarVistaClase(clase) {
   for (const nombre of alumnos) {
     const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
     const ref = doc(db, clase, alumnoId);
-    let docSnap = await getDoc(ref);
-    if (!docSnap.exists()) {
-      await setDoc(ref, { 
-        nombre, 
-        historial: [],
-        ultimaSalida: 0,
-        totalAcumulado: 0
-      });
-      docSnap = await getDoc(ref);
-    }
-    let docData = docSnap.data();
-    docData = await checkAndResetSalidas(docData, ref);
-    const record = docData.historial?.find(d => d.fecha === fecha);
-    let salidas = record ? record.salidas : [];
-    
     const tarjeta = document.createElement("div");
-    tarjeta.innerHTML = alumnoCardHTML(nombre, salidas, docData.ultimaSalida || 0, docData.totalAcumulado || 0);
     app.appendChild(tarjeta);
-    
-    // Asignar listener a cada botón de hora
-    tarjeta.querySelectorAll(".hour-button").forEach(btn => {
-      btn.onclick = async () => {
-        const hora = parseInt(btn.dataset.hora);
-        const existing = salidas.find(s => s.hora === hora);
-        if (!existing) {
-          salidas.push({ hora, usuario: usuarioActual });
-        } else {
-          if (existing.usuario === usuarioActual) {
-            salidas = salidas.filter(s => s.hora !== hora);
-          } else {
-            alert("No puedes desmarcar una salida registrada por otro usuario.");
-            return;
-          }
-        }
-        await actualizarSalidas(ref, docData, fecha, salidas);
-        // Actualiza el botón y el label correspondientes
-        const btnId = `${alumnoId}_btn_${hora}`;
-        const labelId = `${alumnoId}_label_${hora}`;
-        const buttonEl = document.getElementById(btnId);
-        const labelEl = document.getElementById(labelId);
-        if (salidas.find(s => s.hora === hora)) {
-          buttonEl.style.backgroundColor = "#0044cc";
-          buttonEl.style.color = "#ff0";
-          buttonEl.style.border = "1px solid #003399";
-          labelEl.textContent = usuarioActual.replace("@salesianas.org", "");
-        } else {
-          buttonEl.style.backgroundColor = "#eee";
-          buttonEl.style.color = "#000";
-          buttonEl.style.border = "1px solid #ccc";
-          labelEl.textContent = "";
-        }
-      };
-    });
+    await renderAlumno(tarjeta, ref, alumnoId, nombre);
   }
   app.appendChild(crearBotonVolver(mostrarVistaClases));
 }
+window.mostrarVistaClase = mostrarVistaClase;
 
 // ------------------------------------------------------------------
 // 4) CARGA DE EXCEL Y BORRADO DE DATOS PREVIOS
@@ -399,7 +400,7 @@ function parseExcelFile(file, hasHeaders, callback) {
 }
 
 // Procesar Excel de Alumnos (cabeceras: "Alumno" y "Curso")
-// Al finalizar, se actualiza el documento meta "meta/clases" para guardar la lista de clases
+// Al finalizar, se actualiza el documento meta "meta/clases" para guardar la lista de cursos.
 async function procesarAlumnos(data) {
   console.log("Datos parseados de alumnos:", data);
   if (!confirm("Se borrarán los datos anteriores de alumnos (incluidas las salidas acumuladas). ¿Continuar?")) {
@@ -433,7 +434,7 @@ async function procesarAlumnos(data) {
     }
   });
   clases = Object.keys(alumnosPorClase);
-  // Actualizar documento meta
+  // Actualizar documento meta para conservar los cursos importados
   await setDoc(doc(db, "meta", "clases"), { clases: clases });
   alert("Datos de alumnos cargados. Clases encontradas:\n" + clases.join(", "));
 }
