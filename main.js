@@ -24,8 +24,6 @@ import {
 const appFirebase = initializeApp(firebaseConfig);
 const db = getFirestore(appFirebase);
 
-// ... el resto del código queda igual desde aquí
-
 // DOM y lógica de la app
 
 document.body.insertAdjacentHTML("beforeend", `
@@ -154,7 +152,12 @@ async function mostrarVistaClase(clase) {
     });
   }
 
-  app.innerHTML += `<button onclick="mostrarMenuPrincipal()" style="margin-top:2rem;">🔙 Volver</button>`;
+  // Se evita re-renderizar el contenedor completo. Se añade el botón "Volver" sin innerHTML +=
+  const btnVolver = document.createElement("button");
+  btnVolver.textContent = "🔙 Volver";
+  btnVolver.style.marginTop = "2rem";
+  btnVolver.onclick = mostrarMenuPrincipal;
+  app.appendChild(btnVolver);
 }
 
 // INICIO
