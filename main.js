@@ -66,16 +66,19 @@ function updateHeader() {
       <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
     `;
     const logoutLink = document.getElementById("linkLogout");
-    if (logoutLink) {
-      logoutLink.onclick = async (e) => {
-        e.preventDefault();
-        try {
-          await signOut(auth);
-        } catch (error) {
-          alert("Error al cerrar sesión: " + error.message);
-        }
-      };
+if (logoutLink) {
+  logoutLink.onclick = async (e) => {
+    e.preventDefault();
+    try {
+      await signOut(auth);
+      usuarioActual = null; // Forzar que se borre el usuario
+      updateHeader();
+    } catch (error) {
+      alert("Error al cerrar sesión: " + error.message);
     }
+  };
+}
+
   } else {
     // Sin usuario logueado: solo mostramos la hora del sistema
     document.getElementById("header").innerHTML = `<div>Hora del sistema: ${horaSistema}</div>`;
