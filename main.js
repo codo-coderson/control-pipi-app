@@ -1,6 +1,6 @@
 console.log("🟢 main.js cargado correctamente");
 
-// === CONFIG DE FIREBASE ===
+// == CONFIG DE FIREBASE ==
 const firebaseConfig = {
   apiKey: "AIzaSyCsWVffr6yvIZel2Wzhy1v9ZtvKPiMqiFQ",
   authDomain: "controlpipiapp.firebaseapp.com",
@@ -57,8 +57,12 @@ function updateHeader() {
   if (displayName && displayName.endsWith("@salesianas.org")) {
     displayName = displayName.replace("@salesianas.org", "");
   }
+  const now = new Date();
+  const pad = n => n < 10 ? "0" + n : n;
+  const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   document.getElementById("header").innerHTML = `
     <div>${displayName || ""}</div>
+    <div>Hora del sistema: ${horaSistema}</div>
     <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
   `;
   const logoutLink = document.getElementById("linkLogout");
@@ -73,6 +77,7 @@ function updateHeader() {
     };
   }
 }
+setInterval(updateHeader, 1000); // Actualiza la hora cada segundo
 
 // ------------------------------------------------------------------
 // 1) AUTENTICACIÓN
@@ -152,7 +157,9 @@ function mostrarMenuPrincipal() {
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
-
+// ------------------------------------------------------------------
+// 2.1) VISTA DE CLASES (LISTADO DE CURSOS)
+// ------------------------------------------------------------------
 function mostrarVistaClases() {
   let htmlClases = `<h2>Selecciona una clase</h2><div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
   clases.forEach(clase => {
@@ -163,12 +170,9 @@ function mostrarVistaClases() {
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
-  // Agregamos un botón de "Volver"
   app.appendChild(crearBotonVolver(mostrarMenuPrincipal));
 }
 window.mostrarVistaClases = mostrarVistaClases;
-
-
 
 // ------------------------------------------------------------------
 // 3) VISTA DE CLASES Y REGISTRO DE SALIDAS
@@ -204,17 +208,22 @@ async function checkAndResetSalidas(docData, ref) {
 }
 
 // Función que genera la tarjeta de un alumno  
-// Se muestran 6 botones, y en cada botón (si está activo) aparece el nombre del profesor (sin "@salesianas.org")  
-// Además, debajo se muestran: "Último día" y "Total acumulado"
+// Se muestran 6 botones (cada uno en un contenedor inline-flex junto a un span con el nombre del profesor si está activo).
+// Debajo se muestran: "Último día" y "Total acumulado".
 function alumnoCardHTML(nombre, salidas = [], ultimaSalida = 0, totalAcumulado = 0) {
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
     const salida = salidas.find(s => s.hora === hora);
     const activa = Boolean(salida);
-    const teacherLabel = activa ? `<span style="font-size: 0.8rem; margin-left: 0.3rem;">${salida.usuario.replace("@salesianas.org", "")}</span>` : "";
-    return `<button class="hour-button ${activa ? "active" : ""}" data-alumno="${alumnoId}" data-hora="${hora}">${hora}${teacherLabel}</button>`;
-  }).join(" ");
+    let btnHTML = `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">`;
+    btnHTML += `<button class="hour-button ${activa ? "active" : ""}" data-alumno="${alumnoId}" data-hora="${hora}">${hora}</button>`;
+    if (activa) {
+      btnHTML += `<span class="teacher-label" style="font-size: 0.8rem; margin-left: 0.3rem;">${salida.usuario.replace("@salesianas.org", "")}</span>`;
+    }
+    btnHTML += `</div>`;
+    return btnHTML;
+  }).join("");
   return `
     <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
       <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
@@ -227,7 +236,7 @@ function alumnoCardHTML(nombre, salidas = [], ultimaSalida = 0, totalAcumulado =
   `;
 }
 
-// Actualiza en Firestore el registro de salidas para el día actual
+// Función para actualizar en Firestore el registro de salidas para el día actual
 async function actualizarSalidas(ref, docData, fecha, salidas) {
   const nuevoHistorial = (docData.historial || []).filter(d => d.fecha !== fecha);
   if (salidas.length > 0) {
@@ -237,7 +246,7 @@ async function actualizarSalidas(ref, docData, fecha, salidas) {
   docData.historial = nuevoHistorial;
 }
 
-// Función para crear un botón "Volver" (se usará arriba y abajo)
+// Función para crear un botón "Volver" (usado tanto arriba como abajo)
 function crearBotonVolver(callback) {
   const btn = document.createElement("button");
   btn.textContent = "🔙 Volver";
@@ -249,7 +258,7 @@ function crearBotonVolver(callback) {
 async function mostrarVistaClase(clase) {
   updateHeader();
   const fecha = getFechaHoy();
-  // Limpiar y agregar botón "Volver" arriba
+  // Mostrar botón "Volver" arriba
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
   app.appendChild(crearBotonVolver(mostrarVistaClases));
   
@@ -268,7 +277,7 @@ async function mostrarVistaClase(clase) {
       docSnap = await getDoc(ref);
     }
     let docData = docSnap.data();
-    // Comprobar si es después de las 14:30 y resetear salidas si corresponde
+    // Comprobar y resetear salidas si es después de las 14:30
     docData = await checkAndResetSalidas(docData, ref);
     const record = docData.historial?.find(d => d.fecha === fecha);
     let salidas = record ? record.salidas : [];
@@ -284,10 +293,10 @@ async function mostrarVistaClase(clase) {
         const hora = parseInt(btn.dataset.hora);
         const existing = salidas.find(s => s.hora === hora);
         if (!existing) {
-          // Si no existe, se añade la salida con el usuario actual
+          // Registrar la salida con el usuario actual
           salidas.push({ hora, usuario: usuarioActual });
         } else {
-          // Si existe, solo se permite quitarla si fue registrada por el mismo usuario
+          // Permitir quitar la salida solo si fue registrada por el mismo usuario
           if (existing.usuario === usuarioActual) {
             salidas = salidas.filter(s => s.hora !== hora);
           } else {
@@ -297,13 +306,19 @@ async function mostrarVistaClase(clase) {
         }
         // Actualizar en Firestore
         await actualizarSalidas(ref, docData, fecha, salidas);
-        // Actualizar apariencia del botón
-        btn.classList.toggle("active");
-        if (btn.classList.contains("active")) {
-          btn.innerHTML = `${hora}<span style="font-size: 0.8rem; margin-left: 0.3rem;">${usuarioActual.replace("@salesianas.org", "")}</span>`;
+        // Actualizar apariencia del botón: se vuelve a aplicar el estilo llamando a aplicarEstilosBoton
+        if (salidas.find(s => s.hora === hora)) {
+          btn.classList.add("active");
         } else {
-          btn.innerHTML = `${hora}`;
+          btn.classList.remove("active");
         }
+        // Para mantener la separación, no se incluye el nombre dentro del botón; la tarjeta se re-renderiza al actualizar la vista
+        // (En una implementación real, se actualizaría el DOM de forma más fina)
+        tarjeta.innerHTML = alumnoCardHTML(nombre, salidas, docData.ultimaSalida || 0, docData.totalAcumulado || 0);
+        // Vuelve a asignar el listener a los botones re-renderizados
+        tarjeta.querySelectorAll(".hour-button").forEach(newBtn => {
+          newBtn.onclick = btn.onclick;
+        });
       };
     });
   }
