@@ -25,7 +25,7 @@ const alumnosPorClase = {
   // Añadir más si lo necesitas
 };
 
-let usuarioActual = "UsuarioDemo"; // Simulación. Más adelante: Firebase Auth
+let usuarioActual = "UsuarioDemo"; // Simulado. Luego usaremos Firebase Auth
 
 // ==============================
 // PANTALLAS
@@ -58,11 +58,12 @@ function mostrarVistaClase(clase) {
   document.querySelectorAll(".hour-button").forEach(btn => {
     btn.onclick = () => {
       btn.classList.toggle("active");
+      aplicarEstilosBoton(btn);
       const alumno = btn.dataset.alumno;
       const hora = btn.dataset.hora;
       console.log(`⏰ ${usuarioActual} marcó la hora ${hora} para ${alumno} en ${clase}`);
-      // Aquí en el futuro: guardar en Firebase
     };
+    aplicarEstilosBoton(btn);
   });
 }
 
@@ -70,7 +71,7 @@ function alumnoCardHTML(clase, nombre) {
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
-    return `<button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="padding:0.3rem 0.6rem; border-radius:5px; border:1px solid #ccc; background:#eee; font-weight:bold;">${hora}</button>`;
+    return `<button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}">${hora}</button>`;
   }).join(" ");
 
   return `
@@ -79,6 +80,18 @@ function alumnoCardHTML(clase, nombre) {
       <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
     </div>
   `;
+}
+
+function aplicarEstilosBoton(btn) {
+  if (btn.classList.contains("active")) {
+    btn.style.backgroundColor = "#0044cc";
+    btn.style.color = "#ff0";
+    btn.style.border = "1px solid #003399";
+  } else {
+    btn.style.backgroundColor = "#eee";
+    btn.style.color = "#000";
+    btn.style.border = "1px solid #ccc";
+  }
 }
 
 // ==============================
