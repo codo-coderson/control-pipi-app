@@ -1,5 +1,3 @@
-// main.js
-
 console.log("🟢 main.js cargado correctamente");
 
 document.body.insertAdjacentHTML("beforeend", `
@@ -22,10 +20,17 @@ const clases = [
 const alumnosPorClase = {
   "1ºA": ["Pérez Gómez, Laura", "Martínez Ruiz, Pedro"],
   "1ºB": ["García López, Marta", "Sánchez Rivera, Iván"],
-  // Añadir más si lo necesitas
+  "2ºA": ["Jiménez Bravo, Carla", "Moreno Díaz, Luis"],
+  "2ºB": ["Ramos Ortega, Ana", "Ruiz Fernández, Hugo"],
+  "3ºA": ["López Martín, Noa", "González Torres, Álvaro"],
+  "3ºB": ["Castillo Vega, Lucía", "Delgado Ramírez, Daniel"],
+  "4ºA": ["Molina Serrano, Paula", "Vicente Romero, Jorge"],
+  "4ºB": ["Navarro Blanco, Emma", "Reyes León, Marcos"],
+  "5ºA": ["Santos Marín, Sofía", "Ibáñez Campos, Tomás"],
+  "5ºB": ["Paredes Cruz, Inés", "Durán Cabrera, Samuel"]
 };
 
-let usuarioActual = "UsuarioDemo"; // Simulado. Luego usaremos Firebase Auth
+let usuarioActual = "UsuarioDemo";
 
 // ==============================
 // PANTALLAS
@@ -43,6 +48,7 @@ function mostrarMenuPrincipal() {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
 }
+window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
