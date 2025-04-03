@@ -11,6 +11,7 @@ const firebaseConfig = {
 };
 
 // ✅ IMPORTS DESDE CDN (no usar npm, porque no estás con Vite todavía)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore,
   doc,
@@ -22,6 +23,10 @@ import {
 // ✅ INICIALIZAR FIREBASE
 const appFirebase = initializeApp(firebaseConfig);
 const db = getFirestore(appFirebase);
+
+// ... el resto del código queda igual desde aquí
+
+// DOM y lógica de la app
 
 document.body.insertAdjacentHTML("beforeend", `
   <div id="app" style="width:100%; max-width:700px;"></div>
