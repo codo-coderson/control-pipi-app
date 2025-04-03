@@ -52,30 +52,36 @@ let usuarioActual = null;   // Se llenará con user.email cuando se loguee
 // Función para actualizar el header: muestra el email (sin dominio), la hora del sistema y enlace de cerrar sesión
 // ------------------------------------------------------------------
 function updateHeader() {
-  let displayName = usuarioActual;
-  if (displayName && displayName.endsWith("@salesianas.org")) {
-    displayName = displayName.replace("@salesianas.org", "");
-  }
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
   const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  document.getElementById("header").innerHTML = `
-    <div>${displayName || ""}</div>
-    <div>Hora del sistema: ${horaSistema}</div>
-    <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
-  `;
-  const logoutLink = document.getElementById("linkLogout");
-  if (logoutLink) {
-    logoutLink.onclick = async (e) => {
-      e.preventDefault();
-      try {
-        await signOut(auth);
-      } catch (error) {
-        alert("Error al cerrar sesión: " + error.message);
-      }
-    };
+  if (usuarioActual) {
+    let displayName = usuarioActual;
+    if (displayName.endsWith("@salesianas.org")) {
+      displayName = displayName.replace("@salesianas.org", "");
+    }
+    document.getElementById("header").innerHTML = `
+      <div>${displayName}</div>
+      <div>Hora del sistema: ${horaSistema}</div>
+      <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
+    `;
+    const logoutLink = document.getElementById("linkLogout");
+    if (logoutLink) {
+      logoutLink.onclick = async (e) => {
+        e.preventDefault();
+        try {
+          await signOut(auth);
+        } catch (error) {
+          alert("Error al cerrar sesión: " + error.message);
+        }
+      };
+    }
+  } else {
+    // Sin usuario logueado: solo mostramos la hora del sistema
+    document.getElementById("header").innerHTML = `<div>Hora del sistema: ${horaSistema}</div>`;
   }
 }
+
 setInterval(updateHeader, 1000);
 
 // ------------------------------------------------------------------
