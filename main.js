@@ -11,7 +11,6 @@ const firebaseConfig = {
 };
 
 // ✅ IMPORTS DESDE CDN (no usar npm, porque no estás con Vite todavía)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore,
   doc,
