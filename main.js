@@ -1,6 +1,6 @@
 console.log("🟢 main.js cargado correctamente");
 
-// == CONFIG DE FIREBASE ==
+// === CONFIG DE FIREBASE ===
 const firebaseConfig = {
   apiKey: "AIzaSyCsWVffr6yvIZel2Wzhy1v9ZtvKPiMqiFQ",
   authDomain: "controlpipiapp.firebaseapp.com",
