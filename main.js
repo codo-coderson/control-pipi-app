@@ -45,43 +45,32 @@ document.body.insertAdjacentHTML("beforeend", `
 const app = document.getElementById("app");
 
 // --- Variables globales ---
-let alumnosPorClase = {}; // Ej.: { "1ESO A": ["Pérez, Juan", ...] }
-let clases = [];          // Ej.: ["1ESO A", "2ESO B", ...]
-let usuarioActual = null; // Se asigna tras iniciar sesión
+let alumnosPorClase = {};   // Ej.: { "1ESO A": ["Pérez, Juan", ...] }
+let clases = [];            // Ej.: ["1ESO A", "2ESO B", ...]
+let usuarioActual = null;   // Se asigna tras iniciar sesión
 
-// ---------- PERSISTENCIA EN FIRESTORE ----------
-// Esta función lee el documento meta (meta/clases) y para cada clase carga los alumnos.
-// Para que esto funcione, al cargar los excels se debe actualizar ese documento con la lista de cursos.
-async function loadDataFromFirestore() {
+// ******* NUEVA SECCIÓN: Hora real desde servidor *******
+let timeOffset = 0;
+async function updateTimeOffset() {
   try {
-    const metaRef = doc(db, "meta", "clases");
-    const metaSnap = await getDoc(metaRef);
-    if (metaSnap.exists()) {
-      clases = metaSnap.data().clases || [];
-    } else {
-      clases = [];
-    }
-    // Por cada curso, cargamos los alumnos (almacenados en la colección del curso)
-    for (const curso of clases) {
-      const collRef = collection(db, curso);
-      const snapshot = await getDocs(collRef);
-      alumnosPorClase[curso] = [];
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.nombre && !alumnosPorClase[curso].includes(data.nombre)) {
-          alumnosPorClase[curso].push(data.nombre);
-        }
-      });
-    }
+    // Se utiliza HTTPS para obtener la hora real de la zona deseada (aquí Europe/Madrid)
+    const res = await fetch("https://worldtimeapi.org/api/timezone/Europe/Madrid");
+    const data = await res.json();
+    const serverTime = new Date(data.datetime).getTime();
+    timeOffset = serverTime - Date.now();
   } catch (err) {
-    console.error("Error al cargar datos desde Firestore:", err);
+    console.error("Error al obtener la hora del servidor:", err);
+    timeOffset = 0;
   }
 }
+updateTimeOffset();
+setInterval(updateTimeOffset, 5 * 60 * 1000);
+// ******************************************************
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
+// Ahora se usa new Date(Date.now() + timeOffset) para obtener la hora real, en lugar de la del cliente.
 function updateHeader() {
-  const now = new Date();
+  const now = new Date(Date.now() + timeOffset);
   const pad = n => n < 10 ? "0" + n : n;
   const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   if (usuarioActual) {
@@ -159,7 +148,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Antes de mostrar el menú, cargamos los datos de Firestore (si existen).
+// Antes de mostrarlo, se cargan los datos de Firestore (si ya fueron cargados previamente) mediante un documento meta.
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
@@ -194,7 +183,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra un listado de cursos con botón "Volver" arriba y abajo.
+// Muestra un listado de cursos con botón "Volver" arriba y otro abajo.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -219,8 +208,7 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
-
-// Función para obtener la fecha en formato YYYY-MM-DD
+// Función para obtener la fecha en formato YYYY-MM-DD.
 function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
 }
@@ -245,10 +233,10 @@ function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcum
             </div>`;
   }).join("");
   return `
-    <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
-      <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
-      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
-      <div style="margin-top:0.5rem; font-size:0.9rem;">
+    <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+      <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
+      <div style="margin-top: 0.5rem; font-size: 0.9rem;">
          Último día: ${ultimaSalida || 0} salidas. Total acumulado: ${totalAcumulado || 0} salidas.
       </div>
     </div>
@@ -290,7 +278,7 @@ function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumul
   });
 }
 
-// Función para mostrar la vista de una clase
+// Función para mostrar la vista de una clase y sus alumnos.
 async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
   const fecha = getFechaHoy();
@@ -300,7 +288,6 @@ async function mostrarVistaClase(clase) {
   btnArriba.style.marginBottom = "1rem";
   btnArriba.onclick = mostrarVistaClases;
   app.appendChild(btnArriba);
-  
   for (const nombre of alumnos) {
     const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
     const ref = doc(db, clase, alumnoId);
@@ -316,7 +303,6 @@ async function mostrarVistaClase(clase) {
     renderCard(cardContainer, clase, nombre, currentSalidas, data.ultimaSalida || 0, data.totalAcumulado || 0, ref, fecha);
     app.appendChild(cardContainer);
   }
-  
   const btnAbajo = document.createElement("button");
   btnAbajo.textContent = "🔙 Volver";
   btnAbajo.style.marginTop = "2rem";
@@ -362,7 +348,7 @@ function procesarAlumnos(data) {
     }
   });
   clases = Object.keys(alumnosPorClase);
-  // Aquí también se actualiza el documento meta con la lista de cursos.
+  // Actualizar documento meta para persistir la lista de cursos en Firestore.
   setDoc(doc(db, "meta", "clases"), { clases: clases });
   alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
 }
