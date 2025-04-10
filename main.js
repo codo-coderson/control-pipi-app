@@ -224,34 +224,59 @@ async function mostrarVistaClase(clase) {
     
     // Asignamos listener a cada botón de la tarjeta:
     tarjeta.querySelectorAll(".hour-button").forEach(btn => {
-      btn.onclick = async () => {
-        // Recuperamos la lista actual de horas activas (suponemos que está almacenada en el documento)
-        let docSnapAct = await getDoc(ref);
-        let dataAct = docSnapAct.data();
-        let registroHoyAct = dataAct.historial ? dataAct.historial.find(r => r.fecha === fecha) : null;
-        let nuevasHoras = registroHoyAct ? registroHoyAct.horas || [] : [];
-        const hora = parseInt(btn.dataset.hora);
-        if (nuevasHoras.includes(hora)) {
-          // Desactivar: solo si se registra con este usuario (para simplificar, en esta versión se permite quitar sin validación de usuario)
-          nuevasHoras = nuevasHoras.filter(h => h !== hora);
-        } else {
-          nuevasHoras.push(hora);
-        }
-        // Actualizamos en Firestore (sustituyendo el registro de hoy)
-        const nuevoHistorial = (dataAct.historial || []).filter(r => r.fecha !== fecha);
-        if (nuevasHoras.length > 0) {
-          nuevoHistorial.push({ fecha, horas: nuevasHoras, usuario: usuarioActual });
-        }
-        await updateDoc(ref, { historial: nuevoHistorial });
-        console.log(`Guardado: ${nombre}, clase ${clase}, horas: [${nuevasHoras.join(", ")}], por ${usuarioActual}`);
-        // Actualizamos la apariencia del botón:
-        if (nuevasHoras.includes(hora)) {
-          btn.classList.add("active");
-        } else {
-          btn.classList.remove("active");
-        }
-        aplicarEstilosBoton(btn);
-      };
+     btn.onclick = async () => {
+  // Obtenemos la información actualizada del documento
+  let docSnapActual = await getDoc(ref);
+  let dataAct = docSnapActual.data();
+  
+  // Buscar el registro de hoy en el historial (suponiendo que se guarda con el campo "fecha" y "salidas")
+  let registroHoy = dataAct.historial ? dataAct.historial.find(r => r.fecha === fecha) : null;
+  // Si no existe, empezamos con un array vacío
+  let salidas = registroHoy ? registroHoy.salidas || [] : [];
+  
+  const hora = parseInt(btn.dataset.hora);
+  const existente = salidas.find(s => s.hora === hora);
+  if (existente) {
+    if (existente.usuario === usuarioActual) {
+      // Quitar la salida (desmarcar)
+      salidas = salidas.filter(s => s.hora !== hora);
+    } else {
+      alert("No puedes desmarcar una salida registrada por otro usuario.");
+      return;
+    }
+  } else {
+    salidas.push({ hora, usuario: usuarioActual });
+  }
+  
+  // Actualizamos el historial: removemos el registro de hoy y lo reemplazamos si hay salidas
+  const nuevoHistorial = (dataAct.historial || []).filter(r => r.fecha !== fecha);
+  if (salidas.length > 0) {
+    nuevoHistorial.push({ fecha, salidas });
+  }
+  await updateDoc(ref, { historial: nuevoHistorial });
+  console.log(`Actualizado ${nombre}, clase ${clase}. Salidas hoy: [${salidas.map(x => x.hora).join(", ")}] por ${usuarioActual}`);
+  
+  // Actualizamos el botón que se pulsó:
+  if (salidas.find(s => s.hora === hora)) {
+    btn.classList.add("active");
+    btn.style.backgroundColor = "#0044cc";
+    btn.style.color = "#ff0";
+    btn.style.border = "1px solid #003399";
+    // Para el label, necesitarás que la estructura HTML esté tal como definimos en alumnoCardHTML; 
+    // si el label se insertó en el HTML ya generado, podría ser necesario re-renderizar la tarjeta completa para actualizar los labels.
+  } else {
+    btn.classList.remove("active");
+    btn.style.backgroundColor = "#eee";
+    btn.style.color = "#000";
+    btn.style.border = "1px solid #ccc";
+    // Quitar el label asociado (p.ej. estableciendo su innerHTML a vacío)
+    // Es recomendable re-renderizar la tarjeta completa en este caso.
+  }
+  
+  // Opcional: Re-renderiza toda la tarjeta para asegurar que se actualice el label correctamente:
+  // tarjeta.innerHTML = alumnoCardHTML(clase, nombre, salidas);
+};
+
       aplicarEstilosBoton(btn); // Inicialmente se aplica
     });
   }
@@ -263,14 +288,24 @@ async function mostrarVistaClase(clase) {
   app.appendChild(btnAbajo);
 }
 
-function alumnoCardHTML(clase, nombre, horasActivas = []) {
+function alumnoCardHTML(clase, nombre, salidas = []) {
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-  // Por esta versión sencilla, horasActivas es un array de números
+  // Cada "salida" es un objeto { hora, usuario }
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
-    const activa = horasActivas.includes(hora);
-    return `<button class="hour-button ${activa ? "active" : ""}" data-alumno="${alumnoId}" data-hora="${hora}">${hora}</button>`;
-  }).join(" ");
+    // Buscar si existe una salida para esa hora
+    const salida = salidas.find(s => s.hora === hora);
+    const activa = Boolean(salida);
+    const style = activa
+      ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
+      : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
+    // Si está activa, preparamos la etiqueta con el usuario sin el dominio:
+    const label = activa ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${salida.usuario.replace("@salesianas.org", "")}</span>` : "";
+    return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
+              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${style}">${hora}</button>
+              ${label}
+            </div>`;
+  }).join("");
   return `
     <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
       <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
@@ -278,6 +313,7 @@ function alumnoCardHTML(clase, nombre, horasActivas = []) {
     </div>
   `;
 }
+
 
 function aplicarEstilosBoton(btn) {
   if (btn.classList.contains("active")) {
