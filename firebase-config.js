@@ -1,9 +1,10 @@
-// ⚠️ Sustituye por tus credenciales reales de Firebase
-//export const firebaseConfig = {
-//  apiKey: "TU_API_KEY",
-//  authDomain: "TU_AUTH_DOMAIN",
-//  projectId: "TU_PROJECT_ID",
-//  storageBucket: "TU_STORAGE_BUCKET",
-//  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-//  appId: "TU_APP_ID"
-//};
+// firebase-config.js
+export const firebaseConfig = { 
+  apiKey: "AIzaSyCsWVffr6yvIZel2Wzhy1v9ZtvKPiMqiFQ", 
+  authDomain: "controlpipiapp.firebaseapp.com", 
+  projectId: "controlpipiapp", 
+  storageBucket: "controlpipiapp.firebasestorage.app", 
+  messagingSenderId: "1059568174856", 
+  appId: "1:1059568174856:web:cf9d54881bb07961d60ebd" 
+};
+
