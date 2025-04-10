@@ -219,10 +219,12 @@ async function mostrarVistaClase(clase) {
     const horasActivas = registroHoy ? registroHoy.horas || [] : [];
     // Renderizamos la tarjeta (sin re-renderizar toda la tarjeta en cada click, actualizamos solo el botón)
     const tarjeta = document.createElement("div");
-    const registroHoy = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
+const registroHoy = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
 const salidas = registroHoy ? registroHoy.salidas : [];
 const tarjeta = document.createElement("div");
 tarjeta.innerHTML = alumnoCardHTML(clase, nombre, salidas, data.ultimaSalida || 0, data.totalAcumulado || 0);
+app.appendChild(tarjeta);
+
 app.appendChild(tarjeta);
 
     app.appendChild(tarjeta);
