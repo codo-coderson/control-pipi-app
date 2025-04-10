@@ -45,13 +45,12 @@ document.body.insertAdjacentHTML("beforeend", `
 const app = document.getElementById("app");
 
 // --- Variables globales ---
-let alumnosPorClase = {}; // Ej.: { "1ESO A": ["Pérez, Juan", ...] }
-let clases = []; // Ej.: ["1ESO A", "2ESO B", ...]
-let usuarioActual = null; // Se asigna en el login
+let alumnosPorClase = {};   // Ej.: { "1ESO A": ["Pérez, Juan", ...] }
+let clases = [];            // Ej.: ["1ESO A", "2ESO B", ...]
+let usuarioActual = null;   // Se asigna tras iniciar sesión
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra nombre (sin "@salesianas.org"), la hora actual y el enlace para cerrar sesión.
-// Si no, muestra solo la hora.
+// Si hay usuario, muestra el nombre (sin "@salesianas.org"), la hora y link para cerrar sesión; si no, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -147,7 +146,7 @@ function mostrarMenuPrincipal() {
     }
   };
   document.getElementById("cargarExcels").onclick = mostrarCargaExcels;
-  // Botón extra de cerrar sesión (opcional)
+  // Botón extra para cerrar sesión
   const btnLogout = document.createElement("button");
   btnLogout.textContent = "Cerrar sesión";
   btnLogout.style.marginTop = "2rem";
@@ -165,7 +164,7 @@ function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra los cursos disponibles; botón "Volver" arriba y abajo.
+// Muestra listado de cursos, con un botón "Volver" arriba y otro abajo.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -190,18 +189,48 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
-// Utiliza el toggle independiente y re-renderiza la tarjeta de cada alumno
+
+// Función para obtener la fecha en formato YYYY-MM-DD
 function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
 }
 
-// Función auxiliar para re-renderizar la tarjeta del alumno y asignar los listeners
+// Función para generar la tarjeta de un alumno.
+// "salidas" es un array de objetos { hora, usuario }.
+function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcumulado = 0) {
+  const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+  const botones = Array.from({ length: 6 }, (_, i) => {
+    const hora = i + 1;
+    const registro = salidas.find(s => s.hora === hora);
+    const activa = Boolean(registro);
+    const estilo = activa 
+      ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
+      : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
+    const label = activa 
+      ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>` 
+      : "";
+    return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
+              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${estilo}">${hora}</button>
+              ${label}
+            </div>`;
+  }).join("");
+  return `
+    <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
+      <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
+      <div style="margin-top:0.5rem; font-size:0.9rem;">
+         Último día: ${ultimaSalida || 0} salidas. Total acumulado: ${totalAcumulado || 0} salidas.
+      </div>
+    </div>
+  `;
+}
+
+// Función auxiliar que asigna el listener a cada botón de la tarjeta y re-renderiza la tarjeta tras cada clic.
 function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumulado, ref, fecha) {
   container.innerHTML = alumnoCardHTML(clase, nombre, salidas, ultimaSalida, totalAcumulado);
   container.querySelectorAll(".hour-button").forEach(button => {
     button.addEventListener("click", async function() {
       const hora = parseInt(this.dataset.hora);
-      // Obtener datos actualizados del alumno
       let docSnapNew = await getDoc(ref);
       let dataNew = docSnapNew.data();
       let registroHoy = dataNew.historial ? dataNew.historial.find(r => r.fecha === fecha) : null;
@@ -222,7 +251,7 @@ function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumul
         nuevoHistorial.push({ fecha, salidas: currentSalidas });
       }
       await updateDoc(ref, { historial: nuevoHistorial });
-      // Leer nuevamente para obtener datos actualizados y re-renderizar
+      // Volvemos a leer el documento y re-renderizamos la tarjeta
       docSnapNew = await getDoc(ref);
       dataNew = docSnapNew.data();
       let registroHoyAfter = dataNew.historial ? dataNew.historial.find(r => r.fecha === fecha) : null;
@@ -268,7 +297,6 @@ async function mostrarVistaClase(clase) {
 window.mostrarVistaClase = mostrarVistaClase;
 
 // --- 5) LECTURA DE EXCEL ---
-// Función para parsear archivos Excel usando SheetJS
 function parseExcelFile(file, hasHeaders, callback) {
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -343,7 +371,7 @@ function mostrarCargaExcels() {
   
   document.getElementById("cargarAlumnos").onclick = () => {
     const fileInput = document.getElementById("fileAlumnos");
-    if (fileInput.files.length === 0) {
+    if(fileInput.files.length === 0) {
       alert("Selecciona un archivo de alumnos.");
       return;
     }
@@ -352,7 +380,7 @@ function mostrarCargaExcels() {
   };
   document.getElementById("cargarProfesores").onclick = () => {
     const fileInput = document.getElementById("fileProfesores");
-    if (fileInput.files.length === 0) {
+    if(fileInput.files.length === 0) {
       alert("Selecciona un archivo de profesores.");
       return;
     }
