@@ -49,26 +49,26 @@ let alumnosPorClase = {};   // Ej.: { "1ESO A": ["Pérez, Juan", ...] }
 let clases = [];            // Ej.: ["1ESO A", "2ESO B", ...]
 let usuarioActual = null;   // Se asigna tras iniciar sesión
 
-// --- Reloj real ---
-// Obtenemos la hora real desde un API y calculamos un desfase (offset) respecto al reloj del cliente
+// ******* NUEVA SECCIÓN: Hora real desde servidor *******
 let timeOffset = 0;
 async function updateTimeOffset() {
   try {
-    // Usa el API de worldtimeapi para la zona deseada (aquí Europe/Madrid)
-    const res = await fetch("http://worldtimeapi.org/api/timezone/Europe/Madrid");
+    // Se utiliza HTTPS para obtener la hora real de la zona deseada (aquí Europe/Madrid)
+    const res = await fetch("https://worldtimeapi.org/api/timezone/Europe/Madrid");
     const data = await res.json();
     const serverTime = new Date(data.datetime).getTime();
     timeOffset = serverTime - Date.now();
   } catch (err) {
     console.error("Error al obtener la hora del servidor:", err);
+    timeOffset = 0;
   }
 }
-// Llamamos al menos una vez y actualizamos cada 5 minutos
 updateTimeOffset();
 setInterval(updateTimeOffset, 5 * 60 * 1000);
+// ******************************************************
 
 // --- Función updateHeader ---
-// Ahora usamos new Date(Date.now() + timeOffset) para mostrar la hora real
+// Ahora se usa new Date(Date.now() + timeOffset) para obtener la hora real, en lugar de la del cliente.
 function updateHeader() {
   const now = new Date(Date.now() + timeOffset);
   const pad = n => n < 10 ? "0" + n : n;
@@ -148,7 +148,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Antes de mostrarlo, cargamos los datos de Firestore (si fueron cargados previamente) mediante un documento meta.
+// Antes de mostrarlo, se cargan los datos de Firestore (si ya fueron cargados previamente) mediante un documento meta.
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
@@ -183,6 +183,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
+// Muestra un listado de cursos con botón "Volver" arriba y otro abajo.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -207,21 +208,23 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
+// Función para obtener la fecha en formato YYYY-MM-DD.
 function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
 }
 
-// Función que genera la tarjeta de un alumno. "salidas" es un array de objetos {hora, usuario}
+// Función que genera la tarjeta de un alumno.
+// "salidas" es un array de objetos { hora, usuario }.
 function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcumulado = 0) {
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
     const registro = salidas.find(s => s.hora === hora);
     const activa = Boolean(registro);
-    const estilo = activa 
+    const estilo = activa
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
       : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
-    const label = activa 
+    const label = activa
       ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>`
       : "";
     return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
