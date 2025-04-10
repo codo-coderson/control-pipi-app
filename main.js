@@ -214,45 +214,13 @@ async function mostrarVistaClase(clase) {
     docSnap = await getDoc(ref);
   }
   const data = docSnap.data();
-  const registroHoyData = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
-  const salidas = registroHoyData ? registroHoyData.salidas : [];
-  const tarjetaAlumno = document.createElement("div");
-  tarjetaAlumno.innerHTML = alumnoCardHTML(clase, nombre, salidas, data.ultimaSalida || 0, data.totalAcumulado || 0);
-  app.appendChild(tarjetaAlumno);
-  
-  tarjetaAlumno.querySelectorAll(".hour-button").forEach(btn => {
-    btn.onclick = async () => {
-      let docSnapAct = await getDoc(ref);
-      let dataAct = docSnapAct.data();
-      let registroHoyAct = dataAct.historial ? dataAct.historial.find(r => r.fecha === fecha) : null;
-      let salidasActuales = registroHoyAct ? registroHoyAct.salidas || [] : [];
-      const hora = parseInt(btn.dataset.hora);
-      const existente = salidasActuales.find(s => s.hora === hora);
-      if (existente) {
-        if (existente.usuario === usuarioActual) {
-          salidasActuales = salidasActuales.filter(s => s.hora !== hora);
-        } else {
-          alert("No puedes desmarcar una salida registrada por otro usuario.");
-          return;
-        }
-      } else {
-        salidasActuales.push({ hora, usuario: usuarioActual });
-      }
-      const nuevoHistorial = (dataAct.historial || []).filter(r => r.fecha !== fecha);
-      if (salidasActuales.length > 0) {
-        nuevoHistorial.push({ fecha, salidas: salidasActuales });
-      }
-      await updateDoc(ref, { historial: nuevoHistorial });
-      console.log(`Actualizado ${nombre}, clase ${clase}, salidas: [${salidasActuales.map(x => x.hora).join(", ")}] por ${usuarioActual}`);
-      // Re-renderizamos la tarjeta actualizada
-      tarjetaAlumno.innerHTML = alumnoCardHTML(clase, nombre, salidasActuales, dataAct.ultimaSalida || 0, dataAct.totalAcumulado || 0);
-      tarjetaAlumno.querySelectorAll(".hour-button").forEach(nuevoBtn => {
-        nuevoBtn.onclick = btn.onclick;
-      });
-    };
-    aplicarEstilosBoton(btn);
-  });
+  const registroHoy = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
+  const salidas = registroHoy ? registroHoy.salidas : [];
+  const cardContainer = document.createElement("div");
+  renderCard(cardContainer, clase, nombre, salidas, data.ultimaSalida || 0, data.totalAcumulado || 0, ref, fecha);
+  app.appendChild(cardContainer);
 }
+
 
   // Botón volver abajo
   const btnAbajo = document.createElement("button");
@@ -284,10 +252,48 @@ function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcum
       <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
       <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
       <div style="margin-top:0.5rem; font-size:0.9rem;">
-         Último día: ${ultimaSalida} salidas. Total acumulado: ${totalAcumulado} salidas.
+         Último día: ${ultimaSalida || 0} salidas. Total acumulado: ${totalAcumulado || 0} salidas.
       </div>
     </div>
   `;
+}
+
+function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumulado, ref, fecha) {
+  container.innerHTML = alumnoCardHTML(clase, nombre, salidas, ultimaSalida, totalAcumulado);
+  container.querySelectorAll(".hour-button").forEach(button => {
+    button.addEventListener("click", async function() {
+      const hora = parseInt(this.dataset.hora);
+      // Obtenemos el estado actualizado desde Firestore
+      let docSnapNew = await getDoc(ref);
+      let dataNew = docSnapNew.data();
+      let registroHoy = dataNew.historial ? dataNew.historial.find(r => r.fecha === fecha) : null;
+      let newSalidas = registroHoy ? registroHoy.salidas || [] : [];
+      const existente = newSalidas.find(r => r.hora === hora);
+      if (existente) {
+        // Solo se puede quitar si es el mismo usuario
+        if (existente.usuario === usuarioActual) {
+          newSalidas = newSalidas.filter(r => r.hora !== hora);
+        } else {
+          alert("No puedes desmarcar una salida registrada por otro usuario.");
+          return;
+        }
+      } else {
+        newSalidas.push({ hora: hora, usuario: usuarioActual });
+      }
+      // Actualizamos en Firestore: removemos el registro de hoy y agregamos el actualizado (si no está vacío)
+      const nuevoHistorial = dataNew.historial ? dataNew.historial.filter(r => r.fecha !== fecha) : [];
+      if (newSalidas.length > 0) {
+        nuevoHistorial.push({ fecha, salidas: newSalidas });
+      }
+      await updateDoc(ref, { historial: nuevoHistorial });
+      // Volvemos a leer el documento y re-renderizamos la tarjeta
+      docSnapNew = await getDoc(ref);
+      dataNew = docSnapNew.data();
+      let registroHoyAfter = dataNew.historial ? dataNew.historial.find(r => r.fecha === fecha) : null;
+      let salidasAfter = registroHoyAfter ? registroHoyAfter.salidas : [];
+      renderCard(container, clase, nombre, salidasAfter, dataNew.ultimaSalida || 0, dataNew.totalAcumulado || 0, ref, fecha);
+    });
+  });
 }
 
 
