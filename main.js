@@ -203,9 +203,9 @@ function mostrarVistaClases() {
   });
   html += `</div>`;
   const btnArriba = document.createElement("button");
-  btnArriba.textContent = "🔙 Volver";
+  /*btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
-  btnArriba.onclick = mostrarMenuPrincipal;
+  btnArriba.onclick = mostrarMenuPrincipal;*/
   app.innerHTML = btnArriba.outerHTML + html;
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
