@@ -50,7 +50,7 @@ let clases = [];          // Ej.: ["1ESO A", "2ESO B", ...]
 let usuarioActual = null; // Se asigna tras iniciar sesión
 
 // ---------- PERSISTENCIA EN FIRESTORE ----------
-// Lee el documento meta (meta/clases) y para cada clase carga los alumnos.
+// Lee el documento meta ("meta/clases") y para cada curso carga los alumnos.
 async function loadDataFromFirestore() {
   try {
     const metaRef = doc(db, "meta", "clases");
@@ -60,7 +60,6 @@ async function loadDataFromFirestore() {
     } else {
       clases = [];
     }
-    // Por cada curso, cargamos los alumnos (colección por curso)
     for (const curso of clases) {
       const collRef = collection(db, curso);
       const snapshot = await getDocs(collRef);
@@ -78,7 +77,7 @@ async function loadDataFromFirestore() {
 }
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra su nombre (sin dominio), hora y link de cerrar sesión; si no, solo la hora.
+// Si hay usuario, muestra su nombre (sin dominio), la hora y el enlace para cerrar sesión; si no, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -158,7 +157,8 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Se carga loadDataFromFirestore para tener los datos ya importados.
+// Carga los datos de Firestore y muestra los botones.
+// El botón "Carga de alumnos" (renombrado desde "Carga de excels") solo se muestra para salvador.fernandez@salesianas.org.
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
@@ -195,7 +195,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Se muestra un listado de cursos con solo un botón "Volver" al final.
+// Muestra el listado de cursos. Se elimina el botón "Volver" superior; solo queda el de abajo.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -221,8 +221,7 @@ function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
 }
 
-// Función que genera la tarjeta de un alumno.
-// "salidas" es un array de objetos { hora, usuario }.
+// Función que genera la tarjeta de un alumno. "salidas" es un array de objetos {hora, usuario}.
 function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcumulado = 0) {
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   const botones = Array.from({ length: 6 }, (_, i) => {
@@ -358,7 +357,7 @@ function procesarAlumnos(data) {
     }
   });
   clases = Object.keys(alumnosPorClase);
-  // Actualizar documento meta para persistir la lista de cursos en Firestore.
+  // Actualizar el documento meta para persistir la lista de cursos en Firestore.
   setDoc(doc(db, "meta", "clases"), { clases: clases });
   alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
 }
@@ -380,7 +379,10 @@ function procesarProfesores(rows) {
 }
 
 function mostrarCargaExcels() {
-  // Ahora se llama "Carga de alumnos" y solo muestra la sección de alumnos.
+  // Esta función ya no se usa; en su lugar usaremos mostrarCargaAlumnos.
+}
+
+function mostrarCargaAlumnos() {
   app.innerHTML = `
     <h2>⚙️ Carga de alumnos</h2>
     <div>
