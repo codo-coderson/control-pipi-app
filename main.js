@@ -220,6 +220,7 @@ async function mostrarVistaClase(clase) {
   renderCard(cardContainer, clase, nombre, salidas, data.ultimaSalida || 0, data.totalAcumulado || 0, ref, fecha);
   app.appendChild(cardContainer);
 }
+}
 
 
   // Botón volver abajo
