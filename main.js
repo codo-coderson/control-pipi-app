@@ -50,8 +50,7 @@ let clases = [];          // Ej.: ["1ESO A", "2ESO B", ...]
 let usuarioActual = null; // Se asigna tras iniciar sesión
 
 // ---------- PERSISTENCIA EN FIRESTORE ----------
-// Esta función lee el documento meta (meta/clases) y para cada clase carga los alumnos.
-// Para que esto funcione, al cargar los excels se debe actualizar ese documento con la lista de cursos.
+// Lee el documento meta (meta/clases) y para cada clase carga los alumnos.
 async function loadDataFromFirestore() {
   try {
     const metaRef = doc(db, "meta", "clases");
@@ -61,7 +60,7 @@ async function loadDataFromFirestore() {
     } else {
       clases = [];
     }
-    // Por cada curso, cargamos los alumnos (almacenados en la colección del curso)
+    // Por cada curso, cargamos los alumnos (colección por curso)
     for (const curso of clases) {
       const collRef = collection(db, curso);
       const snapshot = await getDocs(collRef);
@@ -79,7 +78,7 @@ async function loadDataFromFirestore() {
 }
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
+// Si hay usuario, muestra su nombre (sin dominio), hora y link de cerrar sesión; si no, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -159,14 +158,14 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Antes de mostrar el menú, cargamos los datos de Firestore (si existen).
+// Se carga loadDataFromFirestore para tener los datos ya importados.
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
     <h2>Menú Principal</h2>
     <div style="display: flex; flex-direction: column; gap: 1rem;">
       <button id="verClases">Ver Clases</button>
-      <button id="cargarExcels">⚙️ Carga de Excels</button>
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
     </div>
   `;
   document.getElementById("verClases").onclick = () => {
@@ -176,7 +175,9 @@ async function mostrarMenuPrincipal() {
       mostrarVistaClases();
     }
   };
-  document.getElementById("cargarExcels").onclick = mostrarCargaExcels;
+  if (usuarioActual === "salvador.fernandez@salesianas.org") {
+    document.getElementById("cargaAlumnos").onclick = mostrarCargaAlumnos;
+  }
   const btnLogout = document.createElement("button");
   btnLogout.textContent = "Cerrar sesión";
   btnLogout.style.marginTop = "2rem";
@@ -194,7 +195,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra un listado de cursos con botón "Volver" arriba y abajo.
+// Se muestra un listado de cursos con solo un botón "Volver" al final.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -202,11 +203,7 @@ function mostrarVistaClases() {
     html += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
   });
   html += `</div>`;
-  const btnArriba = document.createElement("button");
-  btnArriba.textContent = "🔙 Volver";
-  btnArriba.style.marginBottom = "1rem";
-  btnArriba.onclick = mostrarMenuPrincipal;
-  app.innerHTML = btnArriba.outerHTML + html;
+  app.innerHTML = html;
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
@@ -219,8 +216,7 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
-
-// Función para obtener la fecha en formato YYYY-MM-DD
+// Función para obtener la fecha en formato YYYY-MM-DD.
 function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
 }
@@ -245,10 +241,10 @@ function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcum
             </div>`;
   }).join("");
   return `
-    <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
-      <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
-      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
-      <div style="margin-top:0.5rem; font-size:0.9rem;">
+    <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+      <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
+      <div style="margin-top: 0.5rem; font-size: 0.9rem;">
          Último día: ${ultimaSalida || 0} salidas. Total acumulado: ${totalAcumulado || 0} salidas.
       </div>
     </div>
@@ -290,7 +286,7 @@ function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumul
   });
 }
 
-// Función para mostrar la vista de una clase
+// Función para mostrar la vista de una clase y sus alumnos.
 async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
   const fecha = getFechaHoy();
@@ -362,7 +358,7 @@ function procesarAlumnos(data) {
     }
   });
   clases = Object.keys(alumnosPorClase);
-  // Aquí también se actualiza el documento meta con la lista de cursos.
+  // Actualizar documento meta para persistir la lista de cursos en Firestore.
   setDoc(doc(db, "meta", "clases"), { clases: clases });
   alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
 }
@@ -384,17 +380,13 @@ function procesarProfesores(rows) {
 }
 
 function mostrarCargaExcels() {
+  // Ahora se llama "Carga de alumnos" y solo muestra la sección de alumnos.
   app.innerHTML = `
-    <h2>⚙️ Carga de datos desde Excel</h2>
+    <h2>⚙️ Carga de alumnos</h2>
     <div>
       <h3>Alumnos (cabeceras "Alumno" y "Curso")</h3>
       <input type="file" id="fileAlumnos" accept=".xlsx,.xls" />
       <button id="cargarAlumnos">Cargar Alumnos</button>
-    </div>
-    <div style="margin-top: 1rem;">
-      <h3>Profesores (sin cabeceras)</h3>
-      <input type="file" id="fileProfesores" accept=".xlsx,.xls" />
-      <button id="cargarProfesores">Cargar Profesores</button>
     </div>
     <button id="volverMenu" style="margin-top:2rem;">🔙 Volver</button>
   `;
@@ -407,14 +399,5 @@ function mostrarCargaExcels() {
     }
     const file = fileInput.files[0];
     parseExcelFile(file, true, procesarAlumnos);
-  };
-  document.getElementById("cargarProfesores").onclick = () => {
-    const fileInput = document.getElementById("fileProfesores");
-    if (fileInput.files.length === 0) {
-      alert("Selecciona un archivo de profesores.");
-      return;
-    }
-    const file = fileInput.files[0];
-    parseExcelFile(file, false, procesarProfesores);
   };
 }
