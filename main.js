@@ -45,12 +45,41 @@ document.body.insertAdjacentHTML("beforeend", `
 const app = document.getElementById("app");
 
 // --- Variables globales ---
-let alumnosPorClase = {};   // Ej.: { "1ESO A": ["Pérez, Juan", ...] }
-let clases = [];            // Ej.: ["1ESO A", "2ESO B", ...]
-let usuarioActual = null;   // Se asigna tras iniciar sesión
+let alumnosPorClase = {}; // Ej.: { "1ESO A": ["Pérez, Juan", ...] }
+let clases = [];          // Ej.: ["1ESO A", "2ESO B", ...]
+let usuarioActual = null; // Se asigna tras iniciar sesión
+
+// ---------- PERSISTENCIA EN FIRESTORE ----------
+// Esta función lee el documento meta (meta/clases) y para cada clase carga los alumnos.
+// Para que esto funcione, al cargar los excels se debe actualizar ese documento con la lista de cursos.
+async function loadDataFromFirestore() {
+  try {
+    const metaRef = doc(db, "meta", "clases");
+    const metaSnap = await getDoc(metaRef);
+    if (metaSnap.exists()) {
+      clases = metaSnap.data().clases || [];
+    } else {
+      clases = [];
+    }
+    // Por cada curso, cargamos los alumnos (almacenados en la colección del curso)
+    for (const curso of clases) {
+      const collRef = collection(db, curso);
+      const snapshot = await getDocs(collRef);
+      alumnosPorClase[curso] = [];
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.nombre && !alumnosPorClase[curso].includes(data.nombre)) {
+          alumnosPorClase[curso].push(data.nombre);
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Error al cargar datos desde Firestore:", err);
+  }
+}
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra el nombre (sin "@salesianas.org"), la hora y enlace para cerrar sesión; si no, solo la hora.
+// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -119,10 +148,10 @@ function mostrarVistaLogin() {
     }
   };
 }
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     usuarioActual = user.email;
-    mostrarMenuPrincipal();
+    await mostrarMenuPrincipal();
   } else {
     usuarioActual = null;
     mostrarVistaLogin();
@@ -130,7 +159,9 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-function mostrarMenuPrincipal() {
+// Antes de mostrar el menú, cargamos los datos de Firestore (si existen).
+async function mostrarMenuPrincipal() {
+  await loadDataFromFirestore();
   app.innerHTML = `
     <h2>Menú Principal</h2>
     <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -140,13 +171,12 @@ function mostrarMenuPrincipal() {
   `;
   document.getElementById("verClases").onclick = () => {
     if (clases.length === 0) {
-      alert("Primero carga los datos desde Excel.");
+      alert("No se encontraron datos en Firestore. Carga los excels.");
     } else {
       mostrarVistaClases();
     }
   };
   document.getElementById("cargarExcels").onclick = mostrarCargaExcels;
-  // Botón adicional para cerrar sesión
   const btnLogout = document.createElement("button");
   btnLogout.textContent = "Cerrar sesión";
   btnLogout.style.marginTop = "2rem";
@@ -164,7 +194,7 @@ function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra un listado de cursos con un botón "Volver" arriba y otro abajo.
+// Muestra un listado de cursos con botón "Volver" arriba y abajo.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -189,6 +219,7 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
+
 // Función para obtener la fecha en formato YYYY-MM-DD
 function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
@@ -202,10 +233,10 @@ function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcum
     const hora = i + 1;
     const registro = salidas.find(s => s.hora === hora);
     const activa = Boolean(registro);
-    const estilo = activa 
+    const estilo = activa
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
       : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
-    const label = activa 
+    const label = activa
       ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>`
       : "";
     return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
@@ -224,7 +255,7 @@ function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcum
   `;
 }
 
-// Función auxiliar que asigna el listener a cada botón de la tarjeta y re-renderiza la tarjeta tras cada clic.
+// Función auxiliar que asigna el listener a cada botón y re-renderiza la tarjeta tras cada clic.
 function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumulado, ref, fecha) {
   container.innerHTML = alumnoCardHTML(clase, nombre, salidas, ultimaSalida, totalAcumulado);
   container.querySelectorAll(".hour-button").forEach(button => {
@@ -259,7 +290,7 @@ function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumul
   });
 }
 
-// Función para mostrar la vista de una clase y sus alumnos.
+// Función para mostrar la vista de una clase
 async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
   const fecha = getFechaHoy();
@@ -331,6 +362,8 @@ function procesarAlumnos(data) {
     }
   });
   clases = Object.keys(alumnosPorClase);
+  // Aquí también se actualiza el documento meta con la lista de cursos.
+  setDoc(doc(db, "meta", "clases"), { clases: clases });
   alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
 }
 
