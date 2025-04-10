@@ -219,7 +219,12 @@ async function mostrarVistaClase(clase) {
     const horasActivas = registroHoy ? registroHoy.horas || [] : [];
     // Renderizamos la tarjeta (sin re-renderizar toda la tarjeta en cada click, actualizamos solo el botón)
     const tarjeta = document.createElement("div");
-    tarjeta.innerHTML = alumnoCardHTML(clase, nombre, horasActivas);
+    const registroHoy = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
+const salidas = registroHoy ? registroHoy.salidas : [];
+const tarjeta = document.createElement("div");
+tarjeta.innerHTML = alumnoCardHTML(clase, nombre, salidas, data.ultimaSalida || 0, data.totalAcumulado || 0);
+app.appendChild(tarjeta);
+
     app.appendChild(tarjeta);
     
     // Asignamos listener a cada botón de la tarjeta:
@@ -288,21 +293,20 @@ async function mostrarVistaClase(clase) {
   app.appendChild(btnAbajo);
 }
 
-function alumnoCardHTML(clase, nombre, salidas = []) {
+function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcumulado = 0) {
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-  // Cada "salida" es un objeto { hora, usuario }
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
-    // Buscar si existe una salida para esa hora
-    const salida = salidas.find(s => s.hora === hora);
-    const activa = Boolean(salida);
-    const style = activa
+    const registro = salidas.find(s => s.hora === hora);
+    const activa = Boolean(registro);
+    const estilo = activa 
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
       : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
-    // Si está activa, preparamos la etiqueta con el usuario sin el dominio:
-    const label = activa ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${salida.usuario.replace("@salesianas.org", "")}</span>` : "";
+    const label = activa 
+      ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>` 
+      : "";
     return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
-              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${style}">${hora}</button>
+              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${estilo}">${hora}</button>
               ${label}
             </div>`;
   }).join("");
@@ -310,9 +314,13 @@ function alumnoCardHTML(clase, nombre, salidas = []) {
     <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
       <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
       <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
+      <div style="margin-top:0.5rem; font-size:0.9rem;">
+         Último día: ${ultimaSalida} salidas. Total acumulado: ${totalAcumulado} salidas.
+      </div>
     </div>
   `;
 }
+
 
 
 function aplicarEstilosBoton(btn) {
