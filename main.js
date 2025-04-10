@@ -205,89 +205,55 @@ async function mostrarVistaClase(clase) {
   btnArriba.onclick = mostrarVistaClases;
   app.appendChild(btnArriba);
   
-  for (const nombre of alumnos) {
-    const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-    const ref = doc(db, clase, alumnoId);
-    let docSnap = await getDoc(ref);
-    if (!docSnap.exists()) {
-      await setDoc(ref, { nombre, historial: [] });
-      docSnap = await getDoc(ref);
-    }
-    const data = docSnap.data();
-    // Para este ejemplo, se espera que data.historial contenga objetos con {hora, usuario}.
-    const registroHoy = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
-    const horasActivas = registroHoy ? registroHoy.horas || [] : [];
-    // Renderizamos la tarjeta (sin re-renderizar toda la tarjeta en cada click, actualizamos solo el botón)
-    const tarjeta = document.createElement("div");
-const registroHoyData = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
-const salidas = registroHoyData ? registroHoyData.salidas : [];
-const tarjeta = document.createElement("div");
-tarjeta.innerHTML = alumnoCardHTML(clase, nombre, salidas, data.ultimaSalida || 0, data.totalAcumulado || 0);
-app.appendChild(tarjeta);
-
-
-app.appendChild(tarjeta);
-
-    app.appendChild(tarjeta);
-    
-    // Asignamos listener a cada botón de la tarjeta:
-    tarjeta.querySelectorAll(".hour-button").forEach(btn => {
-     btn.onclick = async () => {
-  // Obtenemos la información actualizada del documento
-  let docSnapActual = await getDoc(ref);
-  let dataAct = docSnapActual.data();
-  
-  // Buscar el registro de hoy en el historial (suponiendo que se guarda con el campo "fecha" y "salidas")
-  let registroHoy = dataAct.historial ? dataAct.historial.find(r => r.fecha === fecha) : null;
-  // Si no existe, empezamos con un array vacío
-  let salidas = registroHoy ? registroHoy.salidas || [] : [];
-  
-  const hora = parseInt(btn.dataset.hora);
-  const existente = salidas.find(s => s.hora === hora);
-  if (existente) {
-    if (existente.usuario === usuarioActual) {
-      // Quitar la salida (desmarcar)
-      salidas = salidas.filter(s => s.hora !== hora);
-    } else {
-      alert("No puedes desmarcar una salida registrada por otro usuario.");
-      return;
-    }
-  } else {
-    salidas.push({ hora, usuario: usuarioActual });
+ for (const nombre of alumnos) {
+  const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+  const ref = doc(db, clase, alumnoId);
+  let docSnap = await getDoc(ref);
+  if (!docSnap.exists()) {
+    await setDoc(ref, { nombre, historial: [] });
+    docSnap = await getDoc(ref);
   }
+  const data = docSnap.data();
+  const registroHoyData = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
+  const salidas = registroHoyData ? registroHoyData.salidas : [];
+  const tarjetaAlumno = document.createElement("div");
+  tarjetaAlumno.innerHTML = alumnoCardHTML(clase, nombre, salidas, data.ultimaSalida || 0, data.totalAcumulado || 0);
+  app.appendChild(tarjetaAlumno);
   
-  // Actualizamos el historial: removemos el registro de hoy y lo reemplazamos si hay salidas
-  const nuevoHistorial = (dataAct.historial || []).filter(r => r.fecha !== fecha);
-  if (salidas.length > 0) {
-    nuevoHistorial.push({ fecha, salidas });
-  }
-  await updateDoc(ref, { historial: nuevoHistorial });
-  console.log(`Actualizado ${nombre}, clase ${clase}. Salidas hoy: [${salidas.map(x => x.hora).join(", ")}] por ${usuarioActual}`);
-  
-  // Actualizamos el botón que se pulsó:
-  if (salidas.find(s => s.hora === hora)) {
-    btn.classList.add("active");
-    btn.style.backgroundColor = "#0044cc";
-    btn.style.color = "#ff0";
-    btn.style.border = "1px solid #003399";
-    // Para el label, necesitarás que la estructura HTML esté tal como definimos en alumnoCardHTML; 
-    // si el label se insertó en el HTML ya generado, podría ser necesario re-renderizar la tarjeta completa para actualizar los labels.
-  } else {
-    btn.classList.remove("active");
-    btn.style.backgroundColor = "#eee";
-    btn.style.color = "#000";
-    btn.style.border = "1px solid #ccc";
-    // Quitar el label asociado (p.ej. estableciendo su innerHTML a vacío)
-    // Es recomendable re-renderizar la tarjeta completa en este caso.
-  }
-  
-  // Opcional: Re-renderiza toda la tarjeta para asegurar que se actualice el label correctamente:
-  // tarjeta.innerHTML = alumnoCardHTML(clase, nombre, salidas);
-};
+  tarjetaAlumno.querySelectorAll(".hour-button").forEach(btn => {
+    btn.onclick = async () => {
+      let docSnapAct = await getDoc(ref);
+      let dataAct = docSnapAct.data();
+      let registroHoyAct = dataAct.historial ? dataAct.historial.find(r => r.fecha === fecha) : null;
+      let salidasActuales = registroHoyAct ? registroHoyAct.salidas || [] : [];
+      const hora = parseInt(btn.dataset.hora);
+      const existente = salidasActuales.find(s => s.hora === hora);
+      if (existente) {
+        if (existente.usuario === usuarioActual) {
+          salidasActuales = salidasActuales.filter(s => s.hora !== hora);
+        } else {
+          alert("No puedes desmarcar una salida registrada por otro usuario.");
+          return;
+        }
+      } else {
+        salidasActuales.push({ hora, usuario: usuarioActual });
+      }
+      const nuevoHistorial = (dataAct.historial || []).filter(r => r.fecha !== fecha);
+      if (salidasActuales.length > 0) {
+        nuevoHistorial.push({ fecha, salidas: salidasActuales });
+      }
+      await updateDoc(ref, { historial: nuevoHistorial });
+      console.log(`Actualizado ${nombre}, clase ${clase}, salidas: [${salidasActuales.map(x => x.hora).join(", ")}] por ${usuarioActual}`);
+      // Re-renderizamos la tarjeta actualizada
+      tarjetaAlumno.innerHTML = alumnoCardHTML(clase, nombre, salidasActuales, dataAct.ultimaSalida || 0, dataAct.totalAcumulado || 0);
+      tarjetaAlumno.querySelectorAll(".hour-button").forEach(nuevoBtn => {
+        nuevoBtn.onclick = btn.onclick;
+      });
+    };
+    aplicarEstilosBoton(btn);
+  });
+}
 
-      aplicarEstilosBoton(btn); // Inicialmente se aplica
-    });
-  }
   // Botón volver abajo
   const btnAbajo = document.createElement("button");
   btnAbajo.textContent = "🔙 Volver";
