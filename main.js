@@ -202,11 +202,11 @@ function mostrarVistaClases() {
     html += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
   });
   html += `</div>`;
-  const btnArriba = document.createElement("button");
-  /*btnArriba.textContent = "🔙 Volver";
+  /*const btnArriba = document.createElement("button");
+  btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
-  btnArriba.onclick = mostrarMenuPrincipal;*/
-  app.innerHTML = btnArriba.outerHTML + html;
+  btnArriba.onclick = mostrarMenuPrincipal;
+  app.innerHTML = btnArriba.outerHTML + html;*/
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
@@ -295,11 +295,11 @@ async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
   const fecha = getFechaHoy();
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
-  const btnArriba = document.createElement("button");
+ /* const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
   btnArriba.onclick = mostrarVistaClases;
-  app.appendChild(btnArriba);
+  app.appendChild(btnArriba); */
   
   for (const nombre of alumnos) {
     const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
