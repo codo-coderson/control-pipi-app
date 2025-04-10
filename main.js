@@ -32,65 +32,55 @@ const appFirebase = initializeApp(firebaseConfig);
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
-// Insertamos un header fijo en la esquina superior derecha
+// --- Insertamos el header y contenedor principal ---
+// El header se actualizará (solo cuando hay usuario logueado se mostrará nombre y enlace de logout).
 document.body.insertAdjacentHTML("afterbegin", `
   <div id="header" style="position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000;"></div>
 `);
-
-// == Contenedor principal en el DOM ==
 document.body.insertAdjacentHTML("beforeend", `
   <div id="app" style="width:100%; max-width:700px; margin-top: 3rem;"></div>
 `);
 const app = document.getElementById("app");
 
-// == Variables globales ==
-let alumnosPorClase = {};   // { "1ESO A": ["Pérez, Juan", ...], "2ESO B": [...], ... }
-let clases = [];            // ["1ESO A", "2ESO B", ...]
-let usuarioActual = null;   // Se llenará con user.email cuando se loguee
+// --- Variables globales ---
+let alumnosPorClase = {};   // Ej: { "1ESO A": ["Pérez, Juan", ...] }
+let clases = [];            // Ej: ["1ESO A", "2ESO B", ...]
+let usuarioActual = null;   // Se asigna al loguearse
 
-// ------------------------------------------------------------------
-// Función para actualizar el header: muestra el email (sin dominio), la hora del sistema y enlace de cerrar sesión
-// ------------------------------------------------------------------
+// --- Header: se muestra solo cuando hay usuario logueado ---
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
   const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   if (usuarioActual) {
-    let displayName = usuarioActual;
-    if (displayName.endsWith("@salesianas.org")) {
-      displayName = displayName.replace("@salesianas.org", "");
-    }
+    let displayName = usuarioActual.endsWith("@salesianas.org")
+      ? usuarioActual.replace("@salesianas.org", "")
+      : usuarioActual;
     document.getElementById("header").innerHTML = `
       <div>${displayName}</div>
       <div>Hora del sistema: ${horaSistema}</div>
       <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
     `;
-    const logoutLink = document.getElementById("linkLogout");
-if (logoutLink) {
-  logoutLink.onclick = async (e) => {
-    e.preventDefault();
-    try {
-      await signOut(auth);
-      usuarioActual = null; // Forzar que se borre el usuario
-      updateHeader();
-    } catch (error) {
-      alert("Error al cerrar sesión: " + error.message);
-    }
-  };
-}
-
+    document.getElementById("linkLogout").onclick = async (e) => {
+      e.preventDefault();
+      try {
+        await signOut(auth);
+        usuarioActual = null;
+        updateHeader();
+      } catch (error) {
+        alert("Error al cerrar sesión: " + error.message);
+      }
+    };
   } else {
-    // Sin usuario logueado: solo mostramos la hora del sistema
+    // Si no hay usuario, solo mostramos la hora
     document.getElementById("header").innerHTML = `<div>Hora del sistema: ${horaSistema}</div>`;
   }
 }
-
 setInterval(updateHeader, 1000);
 
-// ------------------------------------------------------------------
-// 1) AUTENTICACIÓN
-// ------------------------------------------------------------------
+// --- 1) AUTENTICACIÓN ---
 function mostrarVistaLogin() {
+  // En login no mostramos datos de usuario ni logout
   app.innerHTML = `
     <h2>🔒 Login</h2>
     <div>
@@ -124,7 +114,7 @@ function mostrarVistaLogin() {
       await sendPasswordResetEmail(auth, email);
       alert("Se ha enviado un email para restablecer la contraseña.");
     } catch (error) {
-      alert("Error al enviar el email de restablecimiento: " + error.message);
+      alert("Error en el envío del email: " + error.message);
     }
   };
 }
@@ -133,13 +123,12 @@ onAuthStateChanged(auth, (user) => {
     usuarioActual = user.email;
     mostrarMenuPrincipal();
   } else {
+    usuarioActual = null;
     mostrarVistaLogin();
   }
 });
 
-// ------------------------------------------------------------------
-// 2) MENÚ PRINCIPAL
-// ------------------------------------------------------------------
+// --- 2) MENÚ PRINCIPAL ---
 function mostrarMenuPrincipal() {
   app.innerHTML = `
     <h2>Menú Principal</h2>
@@ -156,15 +145,15 @@ function mostrarMenuPrincipal() {
     }
   };
   document.getElementById("cargarExcels").onclick = mostrarCargaExcels;
-  
-  // Botón para cerrar sesión
+  // Agregamos el botón de cerrar sesión
   const btnLogout = document.createElement("button");
   btnLogout.textContent = "Cerrar sesión";
   btnLogout.style.marginTop = "2rem";
   btnLogout.onclick = async () => {
     try {
       await signOut(auth);
-      alert("Sesión cerrada.");
+      usuarioActual = null;
+      updateHeader();
     } catch (error) {
       alert("Error al cerrar sesión: " + error.message);
     }
@@ -173,25 +162,20 @@ function mostrarMenuPrincipal() {
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
-// ------------------------------------------------------------------
-// 3) VISTA DE CLASES Y MARCADO DE HORAS
-// ------------------------------------------------------------------
-
-// Agregamos un botón "Volver" arriba y otro abajo en la vista de clases.
+// --- 3) VISTA DE CLASES ---
+// Mostramos un listado de cursos con botón "Volver" arriba y abajo
 function mostrarVistaClases() {
-  let htmlClases = `<h2>Selecciona una clase</h2>
+  let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
   clases.forEach(clase => {
-    htmlClases += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
+    html += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
   });
-  htmlClases += `</div>`;
-  // Agregamos un botón "Volver" arriba (si se desea, aunque en menú principal ya hay uno)
+  html += `</div>`;
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
   btnArriba.onclick = mostrarMenuPrincipal;
-  
-  app.innerHTML = btnArriba.outerHTML + htmlClases;
+  app.innerHTML = btnArriba.outerHTML + html;
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
@@ -201,69 +185,19 @@ function mostrarVistaClases() {
   btnAbajo.onclick = mostrarMenuPrincipal;
   app.appendChild(btnAbajo);
 }
+window.mostrarVistaClases = mostrarVistaClases;
 
-// Modificamos alumnoCardHTML para que cada botón de hora muestre el número y, si activo, un span con el usuario (sin dominio)
-function alumnoCardHTML(clase, nombre, horasActivas = [], ultimaSalida = 0, totalAcumulado = 0) {
-  const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-  const botones = Array.from({ length: 6 }, (_, i) => {
-    const hora = i + 1;
-    const registro = horasActivas.find(x => x.hora === hora);
-    const activa = Boolean(registro);
-    const estilo = activa
-      ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
-      : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
-    const label = activa ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>` : "";
-    return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
-              <button class="hour-button ${activa ? "active" : ""}" data-alumno="${alumnoId}" data-hora="${hora}" style="${estilo}">${hora}</button>
-              ${label}
-            </div>`;
-  }).join(" ");
-  return `
-    <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
-      <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
-      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
-      <div style="margin-top:0.5rem; font-size:0.9rem;">
-         Último día: ${ultimaSalida || 0} salidas. Total acumulado: ${totalAcumulado || 0} salidas.
-      </div>
-    </div>
-  `;
-}
-
-// Función para obtener la fecha actual en formato YYYY-MM-DD
+// --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
+// Usamos la versión que “funcionaba” bien: cada alumno se renderiza con sus botones;
+// al pulsar un botón se alterna el estado y se actualiza Firestore.
 function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
-}
-
-// Función que, si la hora actual es ≥14:30, revisa el registro de hoy en el historial y lo “finaliza”
-// Guardando en el documento los valores de última salida y total acumulado y eliminando el registro de hoy.
-async function checkAndResetSalidas(docData, ref) {
-  const fecha = getFechaHoy();
-  const now = new Date();
-  if (now.getHours() > 14 || (now.getHours() === 14 && now.getMinutes() >= 30)) {
-    const registro = docData.historial ? docData.historial.find(r => r.fecha === fecha) : null;
-    if (registro) {
-      const count = registro.salidas.length;
-      const nuevaUltima = count;
-      const nuevoTotal = (docData.totalAcumulado || 0) + count;
-      // Actualizamos en Firestore y eliminamos el registro de hoy
-      const nuevoHistorial = docData.historial.filter(r => r.fecha !== fecha);
-      await updateDoc(ref, {
-        historial: nuevoHistorial,
-        ultimaSalida: nuevaUltima,
-        totalAcumulado: nuevoTotal
-      });
-      docData.historial = nuevoHistorial;
-      docData.ultimaSalida = nuevaUltima;
-      docData.totalAcumulado = nuevoTotal;
-    }
-  }
-  return docData;
 }
 
 async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
   const fecha = getFechaHoy();
-  // Agregamos un botón "Volver" arriba
+  // Botón volver arriba
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
@@ -279,66 +213,86 @@ async function mostrarVistaClase(clase) {
       await setDoc(ref, { nombre, historial: [] });
       docSnap = await getDoc(ref);
     }
-    let data = docSnap.data();
-    data = await checkAndResetSalidas(data, ref);
-    // Aquí, en lugar de esperar que data.historial contenga un array de números, esperamos array de objetos: [{hora:1, usuario: ...}, ...]
+    const data = docSnap.data();
+    // Para este ejemplo, se espera que data.historial contenga objetos con {hora, usuario}.
     const registroHoy = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
-    const horasActivas = registroHoy ? registroHoy.salidas : [];
+    const horasActivas = registroHoy ? registroHoy.horas || [] : [];
+    // Renderizamos la tarjeta (sin re-renderizar toda la tarjeta en cada click, actualizamos solo el botón)
     const tarjeta = document.createElement("div");
-    tarjeta.innerHTML = alumnoCardHTML(clase, nombre, horasActivas, data.ultimaSalida, data.totalAcumulado);
+    tarjeta.innerHTML = alumnoCardHTML(clase, nombre, horasActivas);
     app.appendChild(tarjeta);
     
+    // Asignamos listener a cada botón de la tarjeta:
     tarjeta.querySelectorAll(".hour-button").forEach(btn => {
       btn.onclick = async () => {
-        // Primero, volvemos a obtener la información actualizada
-        let docSnapActual = await getDoc(ref);
-        let dataActual = docSnapActual.data();
-        dataActual = await checkAndResetSalidas(dataActual, ref);
-        let registroActual = dataActual.historial ? dataActual.historial.find(r => r.fecha === fecha) : null;
-        let salidas = registroActual ? registroActual.salidas : [];
+        // Recuperamos la lista actual de horas activas (suponemos que está almacenada en el documento)
+        let docSnapAct = await getDoc(ref);
+        let dataAct = docSnapAct.data();
+        let registroHoyAct = dataAct.historial ? dataAct.historial.find(r => r.fecha === fecha) : null;
+        let nuevasHoras = registroHoyAct ? registroHoyAct.horas || [] : [];
         const hora = parseInt(btn.dataset.hora);
-        const existente = salidas.find(x => x.hora === hora);
-        if (!existente) {
-          // Registrar la salida con el usuario actual
-          salidas.push({ hora, usuario: usuarioActual });
+        if (nuevasHoras.includes(hora)) {
+          // Desactivar: solo si se registra con este usuario (para simplificar, en esta versión se permite quitar sin validación de usuario)
+          nuevasHoras = nuevasHoras.filter(h => h !== hora);
         } else {
-          // Solo se puede desmarcar si fue registrado por el mismo usuario
-          if (existente.usuario === usuarioActual) {
-            salidas = salidas.filter(x => x.hora !== hora);
-          } else {
-            alert("No puedes desmarcar una salida registrada por otro usuario.");
-            return;
-          }
+          nuevasHoras.push(hora);
         }
-        // Actualizamos el historial para el día de hoy
-        const nuevoHistorial = dataActual.historial ? dataActual.historial.filter(r => r.fecha !== fecha) : [];
-        if (salidas.length > 0) {
-          nuevoHistorial.push({ fecha, salidas });
+        // Actualizamos en Firestore (sustituyendo el registro de hoy)
+        const nuevoHistorial = (dataAct.historial || []).filter(r => r.fecha !== fecha);
+        if (nuevasHoras.length > 0) {
+          nuevoHistorial.push({ fecha, horas: nuevasHoras, usuario: usuarioActual });
         }
         await updateDoc(ref, { historial: nuevoHistorial });
-        console.log(`✅ Guardado: ${nombre}, clase ${clase}, salidas: [${salidas.map(x=>x.hora).join(", ")}], por ${usuarioActual}`);
-        // Re-renderizamos la tarjeta actualizada
-        const nuevoHTML = alumnoCardHTML(clase, nombre, salidas, dataActual.ultimaSalida, dataActual.totalAcumulado);
-        tarjeta.innerHTML = nuevoHTML;
-        // Reasignamos el listener a los botones recién generados
-        tarjeta.querySelectorAll(".hour-button").forEach(nuevoBtn => {
-          nuevoBtn.onclick = btn.onclick;
-        });
+        console.log(`Guardado: ${nombre}, clase ${clase}, horas: [${nuevasHoras.join(", ")}], por ${usuarioActual}`);
+        // Actualizamos la apariencia del botón:
+        if (nuevasHoras.includes(hora)) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+        aplicarEstilosBoton(btn);
       };
+      aplicarEstilosBoton(btn); // Inicialmente se aplica
     });
   }
-  // Botón "Volver" abajo
+  // Botón volver abajo
   const btnAbajo = document.createElement("button");
   btnAbajo.textContent = "🔙 Volver";
   btnAbajo.style.marginTop = "2rem";
   btnAbajo.onclick = mostrarVistaClases;
   app.appendChild(btnAbajo);
 }
-window.mostrarVistaClase = mostrarVistaClase;
 
-// ------------------------------------------------------------------
-// 4) LECTURA DE EXCEL (SheetJS) - DIFERENCIANDO ALUMNOS (con cabecera) Y PROFESORES (sin cabecera)
-// ------------------------------------------------------------------
+function alumnoCardHTML(clase, nombre, horasActivas = []) {
+  const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+  // Por esta versión sencilla, horasActivas es un array de números
+  const botones = Array.from({ length: 6 }, (_, i) => {
+    const hora = i + 1;
+    const activa = horasActivas.includes(hora);
+    return `<button class="hour-button ${activa ? "active" : ""}" data-alumno="${alumnoId}" data-hora="${hora}">${hora}</button>`;
+  }).join(" ");
+  return `
+    <div style="border:1px solid #ccc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
+      <div style="font-weight:bold; margin-bottom:0.5rem;">${nombre}</div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">${botones}</div>
+    </div>
+  `;
+}
+
+function aplicarEstilosBoton(btn) {
+  if (btn.classList.contains("active")) {
+    btn.style.backgroundColor = "#0044cc";
+    btn.style.color = "#ff0";
+    btn.style.border = "1px solid #003399";
+  } else {
+    btn.style.backgroundColor = "#eee";
+    btn.style.color = "#000";
+    btn.style.border = "1px solid #ccc";
+  }
+}
+
+// --- 5) CARGA DE EXCEL ---
+// Se mantiene la versión que tenías, sin cambios significativos
 function parseExcelFile(file, hasHeaders, callback) {
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -346,32 +300,27 @@ function parseExcelFile(file, hasHeaders, callback) {
     const workbook = XLSX.read(data, { type: 'binary' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    let json;
-    if (hasHeaders) {
-      json = XLSX.utils.sheet_to_json(sheet);
-    } else {
-      json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    }
+    let json = hasHeaders 
+      ? XLSX.utils.sheet_to_json(sheet) 
+      : XLSX.utils.sheet_to_json(sheet, { header: 1 });
     callback(json);
   };
   reader.readAsBinaryString(file);
 }
 
-// == Procesar ALUMNOS (espera cabeceras "Alumno" y "Curso") ==
 function procesarAlumnos(data) {
   console.log("Datos parseados de alumnos:", data);
   data.forEach(async (row) => {
     const nombre = row.Alumno;
     const curso = row.Curso;
     if (!nombre || !curso) {
-      console.log("Fila sin 'Alumno' o 'Curso':", row);
+      console.log("Fila incompleta:", row);
       return;
     }
     if (!alumnosPorClase[curso]) {
       alumnosPorClase[curso] = [];
     }
     alumnosPorClase[curso].push(nombre);
-
     const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
     const ref = doc(db, curso, alumnoId);
     const docSnap = await getDoc(ref);
@@ -380,23 +329,16 @@ function procesarAlumnos(data) {
     }
   });
   clases = Object.keys(alumnosPorClase);
-  alert("Datos de alumnos cargados. Clases encontradas:\n" + clases.join(", "));
+  alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
 }
 
-// == Procesar PROFESORES (sin cabeceras: columna 1 = "Apellidos, Nombre", columna 2 = "Email") ==
 function procesarProfesores(rows) {
   console.log("Datos parseados de profesores:", rows);
   rows.forEach(async (cols) => {
-    if (!cols || cols.length < 2) {
-      console.log("Fila sin suficientes columnas:", cols);
-      return;
-    }
+    if (!cols || cols.length < 2) return;
     const nombreCompleto = cols[0];
     const email = cols[1];
-    if (!nombreCompleto || !email) {
-      console.log("Fila sin nombre o email:", cols);
-      return;
-    }
+    if (!nombreCompleto || !email) return;
     const ref = doc(db, "profesores", email);
     const docSnap = await getDoc(ref);
     if (!docSnap.exists()) {
@@ -406,14 +348,11 @@ function procesarProfesores(rows) {
   alert("Datos de profesores cargados.");
 }
 
-// ------------------------------------------------------------------
-// 5) VISTA PARA CARGAR EXCELS
-// ------------------------------------------------------------------
 function mostrarCargaExcels() {
   app.innerHTML = `
     <h2>⚙️ Carga de datos desde Excel</h2>
     <div>
-      <h3>Alumnos (con cabeceras "Alumno" y "Curso")</h3>
+      <h3>Alumnos (cabeceras "Alumno" y "Curso")</h3>
       <input type="file" id="fileAlumnos" accept=".xlsx,.xls" />
       <button id="cargarAlumnos">Cargar Alumnos</button>
     </div>
@@ -425,7 +364,6 @@ function mostrarCargaExcels() {
     <button id="volverMenu" style="margin-top:2rem;">🔙 Volver</button>
   `;
   document.getElementById("volverMenu").onclick = mostrarMenuPrincipal;
-
   document.getElementById("cargarAlumnos").onclick = () => {
     const fileInput = document.getElementById("fileAlumnos");
     if(fileInput.files.length === 0) {
@@ -435,7 +373,6 @@ function mostrarCargaExcels() {
     const file = fileInput.files[0];
     parseExcelFile(file, true, procesarAlumnos);
   };
-
   document.getElementById("cargarProfesores").onclick = () => {
     const fileInput = document.getElementById("fileProfesores");
     if(fileInput.files.length === 0) {
@@ -446,7 +383,3 @@ function mostrarCargaExcels() {
     parseExcelFile(file, false, procesarProfesores);
   };
 }
-
-// ------------------------------------------------------------------
-// FIN: onAuthStateChanged gestiona la vista inicial
-// ------------------------------------------------------------------
