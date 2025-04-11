@@ -60,7 +60,6 @@ async function loadDataFromFirestore() {
     } else {
       clases = [];
     }
-    // Por cada curso, cargamos los alumnos (colección con el nombre del curso)
     for (const curso of clases) {
       const collRef = collection(db, curso);
       const snapshot = await getDocs(collRef);
@@ -78,20 +77,17 @@ async function loadDataFromFirestore() {
 }
 
 // --- Función borrarBaseDeDatos ---
-// Recorre cada colección registrada en "clases" y elimina todos sus documentos,
-// y luego borra el documento meta "meta/clases". Solo para uso del admin.
+// Borra todos los documentos de cada colección listada en "clases" y el documento meta "meta/clases".
 async function borrarBaseDeDatos() {
   try {
-    // Borrar documentos de cada colección (curso)
     for (const curso of clases) {
       const collRef = collection(db, curso);
       const snapshot = await getDocs(collRef);
-      // Eliminamos cada documento de la colección
+      // Se borra cada documento de la colección
       snapshot.forEach(async (docSnap) => {
         await deleteDoc(docSnap.ref);
       });
     }
-    // Borramos el documento meta
     await deleteDoc(doc(db, "meta", "clases"));
     alumnosPorClase = {};
     clases = [];
@@ -103,7 +99,7 @@ async function borrarBaseDeDatos() {
 }
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión;
+// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -183,9 +179,8 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Se carga loadDataFromFirestore y se muestran los botones:
-// "Ver Clases", "Carga de alumnos" (solo para salvador.fernandez@salesianas.org)
-// y un botón "Borrar base de datos" (también sólo para ese usuario).
+// Carga los datos de Firestore y muestra los botones "Ver Clases", "Carga de alumnos" y "Borrar base de datos"
+// Los botones "Carga de alumnos" y "Borrar base de datos" se muestran solo para salvador.fernandez@salesianas.org.
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
@@ -229,7 +224,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra un listado de cursos con un botón "Volver" al final.
+// Muestra un listado de cursos con un botón "Volver" (únicamente al final).
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -374,11 +369,10 @@ function parseExcelFile(file, hasHeaders, callback) {
 
 function procesarAlumnos(data) {
   console.log("Datos parseados de alumnos:", data);
-  // Avisar que se van a borrar todos los registros.
+  // Avisamos que se borrarán TODOS los registros previos.
   if (!confirm("ATENCIÓN: Se BORRARÁN todos los registros anteriores de la base de datos. ¿Desea continuar?")) {
     return;
   }
-  // Borra toda la base de datos antes de cargar los nuevos alumnos.
   borrarBaseDeDatos().then(() => {
     data.forEach(async (row) => {
       const nombre = row.Alumno;
@@ -399,15 +393,18 @@ function procesarAlumnos(data) {
       }
     });
     clases = Object.keys(alumnosPorClase);
-    // Actualiza el documento meta en Firestore.
+    // Actualizar el documento meta para persistir la lista de cursos.
     setDoc(doc(db, "meta", "clases"), { clases: clases });
     alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
   });
 }
 
 function procesarProfesores(rows) {
-  // La carga de profesores ha sido eliminada.
   alert("La carga de profesores ha sido deshabilitada.");
+}
+
+function mostrarCargaExcels() {
+  // Ya no se usa.
 }
 
 function mostrarCargaAlumnos() {
@@ -430,24 +427,4 @@ function mostrarCargaAlumnos() {
     const file = fileInput.files[0];
     parseExcelFile(file, true, procesarAlumnos);
   };
-}
-
-// Función que borra toda la base de datos (todas las colecciones listadas en "clases" y el documento meta)
-async function borrarBaseDeDatos() {
-  try {
-    for (const curso of clases) {
-      const collRef = collection(db, curso);
-      const snapshot = await getDocs(collRef);
-      snapshot.forEach(async (docSnap) => {
-        await deleteDoc(docSnap.ref);
-      });
-    }
-    await deleteDoc(doc(db, "meta", "clases"));
-    alumnosPorClase = {};
-    clases = [];
-    alert("Toda la base de datos ha sido borrada.");
-  } catch (err) {
-    console.error("Error al borrar la base de datos:", err);
-    alert("Error al borrar la base de datos.");
-  }
 }
