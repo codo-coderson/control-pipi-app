@@ -51,7 +51,7 @@ let clases = [];          // Ej.: ["1ESO A", "2ESO B", ...]
 let usuarioActual = null; // Se asigna tras iniciar sesión
 
 // ---------- PERSISTENCIA EN FIRESTORE ----------
-// Lee el documento meta ("meta/clases") y para cada curso carga los alumnos.
+// Lee el documento meta ("meta/clases") y, para cada curso, carga los alumnos.
 async function loadDataFromFirestore() {
   try {
     const metaRef = doc(db, "meta", "clases");
@@ -78,7 +78,7 @@ async function loadDataFromFirestore() {
 }
 
 // --- Función borrarBaseDeDatos ---
-// Borra todos los documentos de cada colección listada en "clases" y el documento meta "meta/clases".
+// Borra todos los documentos de cada colección (según "clases") y el documento meta "meta/clases".
 async function borrarBaseDeDatos() {
   try {
     for (const curso of clases) {
@@ -99,7 +99,7 @@ async function borrarBaseDeDatos() {
 }
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
+// Muestra el nombre (sin dominio), la hora y el enlace para cerrar sesión; si no hay usuario, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -179,7 +179,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Muestra "Ver Clases", "Carga de alumnos" y "Borrar base de datos" (estos dos últimos solo para salvador.fernandez@salesianas.org).
+// Muestra "Ver Clases", "Carga de alumnos" y "Borrar base de datos" (los dos últimos solo para salvador.fernandez@salesianas.org).
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
@@ -223,7 +223,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra un listado de cursos con un único botón "Volver" al final.
+// Muestra el listado de cursos y un único botón "Volver" al final.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -244,38 +244,30 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
-// Función para obtener la fecha (timestamp del inicio del día).
+// Función para obtener la fecha (Timestamp del inicio del día).
 function getFechaHoy() {
-  // Devuelve un Timestamp con la hora 00:00:00 del día actual
   return Timestamp.fromDate(new Date(new Date().setHours(0, 0, 0, 0)));
 }
-
 
 // Función que genera la tarjeta de un alumno usando los nuevos campos:
 // "wc": array de { fecha: Timestamp, salidas: [ { hora, usuario } ] }
 // "salidas_acumuladas": número.
+// Calcula "Último día" tomando solo registros anteriores al día de hoy (basándose en toMillis()).
 function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
   let todayTimestamp = getFechaHoy();
-let registrosPrevios = (wc || []).filter(r => r.fecha.toMillis() < todayTimestamp.toMillis());
-let ultimoDia = registrosPrevios.length > 0
-    ? registrosPrevios.reduce((prev, curr) => (prev.fecha.toMillis() > curr.fecha.toMillis() ? prev : curr)).salidas.length
-    : 0;
-
+  let registrosPrevios = (wc || []).filter(r => r.fecha.toMillis() < todayTimestamp.toMillis());
+  let ultimoDia = registrosPrevios.length > 0
+      ? registrosPrevios.reduce((prev, curr) => (prev.fecha.toMillis() > curr.fecha.toMillis() ? prev : curr)).salidas.length
+      : 0;
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+  
+  // Para las salidas de hoy, buscamos el registro con fecha igual a todayTimestamp
+  let registroHoy = (wc || []).find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
+  let salidasHoy = registroHoy ? registroHoy.salidas : [];
+  
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
-    let registro = null;
-    if (wc && wc.length > 0) {
-  // Usamos el registro del día actual, si existe, para mostrar la salida actual
-  let todayTimestamp = getFechaHoy();
-  let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
-  if (!registroHoy) {
-    registroHoy = { fecha: todayTimestamp, salidas: [] };
-    current_wc.push(registroHoy);
-  }
-}
-
-    }
+    let registro = salidasHoy.find(s => s.hora === hora);
     const activa = Boolean(registro);
     const estilo = activa
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
@@ -311,11 +303,11 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
       let current_total = dataNew.salidas_acumuladas || 0;
       let todayTimestamp = getFechaHoy();
       
-      // Buscar el registro para hoy (comparando timestamp)
-      let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp);
+      // Buscar el registro para hoy comparando el Timestamp
+      let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
       let old_count = registroHoy ? registroHoy.salidas.length : 0;
       if (!registroHoy) {
-        registroHoy = { fecha: Timestamp.fromDate(new Date(todayTimestamp)), salidas: [] };
+        registroHoy = { fecha: todayTimestamp, salidas: [] };
         current_wc.push(registroHoy);
       }
       
@@ -359,7 +351,7 @@ async function mostrarVistaClase(clase) {
     const ref = doc(db, clase, alumnoId);
     let docSnap = await getDoc(ref);
     if (!docSnap.exists()) {
-      // Al crear un alumno nuevo, almacenar con los nuevos campos.
+      // Crear alumno nuevo con los nuevos campos.
       await setDoc(ref, { nombre, salidas_acumuladas: 0, wc: [] });
       docSnap = await getDoc(ref);
     }
