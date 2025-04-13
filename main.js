@@ -1,3 +1,5 @@
+// Todo funciona bastante bien: las estadísticas y que la app muestre lo del día de hoy
+//  sin necesidad de que resetee nada. Ahora a hacerlo responsive
 console.log("🟢 main.js cargado correctamente");
 
 // === CONFIG DE FIREBASE (ya configurada) ===
