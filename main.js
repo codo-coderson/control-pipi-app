@@ -252,10 +252,19 @@ function getFechaHoy() {
 // Ahora se trabajan los nuevos campos: "wc" (array de { fecha, salidas }) y "salidas_acumuladas".
 function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
   // Calcula "Último día": se toma el último registro (suponemos que wc está ordenado cronológicamente).
-  let ultimoDia = 0;
-  if (wc && wc.length > 0) {
-    ultimoDia = wc[wc.length - 1].salidas.length;
+ let fechaHoy = new Date().toISOString().split("T")[0];
+let registroAnterior = null;
+if (wc && wc.length > 0) {
+  for (let rec of wc) {
+    if (rec.fecha < fechaHoy) {
+      if (!registroAnterior || rec.fecha > registroAnterior.fecha) {
+        registroAnterior = rec;
+      }
+    }
   }
+}
+let ultimoDia = registroAnterior ? registroAnterior.salidas.length : 0;
+
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   // Para los botones, se muestra la información del último registro (si existe).
   const botones = Array.from({ length: 6 }, (_, i) => {
