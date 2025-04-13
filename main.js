@@ -134,16 +134,31 @@ async function borrarBaseDeDatos() {
 
 function updateHeader() {
   const now = new Date();
-  const pad = n => n < 10 ? "0" + n : n;
+
+  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+  let diaSemana = dias[now.getDay()];
+  let diaMes = now.getDate();
+  let mes = meses[now.getMonth()];
+  let anio = now.getFullYear();
+
+  // Formato de fecha: "miércoles 3 de agosto de 2025"
+  const fechaSistema = `${diaSemana} ${diaMes} de ${mes} de ${anio}`;
+
+  // Formato de hora 24h sin etiqueta
+  const pad = n => (n < 10 ? "0" + n : n);
   const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
   if (usuarioActual) {
     let displayName = usuarioActual.endsWith("@salesianas.org")
       ? usuarioActual.replace("@salesianas.org", "")
       : usuarioActual;
     document.getElementById("header").innerHTML = `
       <div>${displayName}</div>
-      <div>Hora del sistema: ${horaSistema}</div>
-      <div><a href=\"#\" id=\"linkLogout\">Cerrar sesión</a></div>
+      <div>${fechaSistema}</div>
+      <div>${horaSistema}</div>
+      <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
     `;
     document.getElementById("linkLogout").onclick = async (e) => {
       e.preventDefault();
@@ -156,7 +171,10 @@ function updateHeader() {
       }
     };
   } else {
-    document.getElementById("header").innerHTML = `<div>Hora del sistema: ${horaSistema}</div>`;
+    document.getElementById("header").innerHTML = `
+      <div>${fechaSistema}</div>
+      <div>${horaSistema}</div>
+    `;
   }
 }
 setInterval(updateHeader, 1000);
@@ -202,7 +220,14 @@ function mostrarVistaLogin() {
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     usuarioActual = user.email;
-    await mostrarMenuPrincipal();
+    if (usuarioActual === "salvador.fernandez@salesianas.org") {
+      // salvador se queda con el menú principal
+      await mostrarMenuPrincipal();
+    } else {
+      // Cualquier otro usuario va directo a ver clases
+      await loadDataFromFirestore();
+      mostrarVistaClases();
+    }
   } else {
     usuarioActual = null;
     mostrarVistaLogin();
