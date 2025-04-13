@@ -77,13 +77,12 @@ async function loadDataFromFirestore() {
 }
 
 // --- Función borrarBaseDeDatos ---
-// Borra todos los documentos de cada colección listada en "clases" y el documento meta "meta/clases".
+// Borra todos los documentos de cada colección en "clases" y el documento meta "meta/clases".
 async function borrarBaseDeDatos() {
   try {
     for (const curso of clases) {
       const collRef = collection(db, curso);
       const snapshot = await getDocs(collRef);
-      // Se borra cada documento de la colección
       snapshot.forEach(async (docSnap) => {
         await deleteDoc(docSnap.ref);
       });
@@ -99,7 +98,7 @@ async function borrarBaseDeDatos() {
 }
 
 // --- Función updateHeader ---
-// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
+// Muestra el nombre (sin dominio), la hora y un enlace para cerrar sesión.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -179,8 +178,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Carga los datos de Firestore y muestra los botones "Ver Clases", "Carga de alumnos" y "Borrar base de datos"
-// Los botones "Carga de alumnos" y "Borrar base de datos" se muestran solo para salvador.fernandez@salesianas.org.
+// Muestra "Ver Clases", "Carga de alumnos" y "Borrar base de datos" (estos dos últimos solo para salvador.fernandez@salesianas.org).
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
@@ -224,7 +222,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra un listado de cursos con un botón "Volver" (únicamente al final).
+// Muestra el listado de cursos y un único botón "Volver" (al final).
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -245,18 +243,27 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
-// Función para obtener la fecha en formato YYYY-MM-DD.
+// Para obtener la fecha en formato YYYY-MM-DD.
 function getFechaHoy() {
   return new Date().toISOString().split("T")[0];
 }
 
 // Función que genera la tarjeta de un alumno.
-// "salidas" es un array de objetos { hora, usuario }.
-function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcumulado = 0) {
+// Ahora se trabajan los nuevos campos: "wc" (array de { fecha, salidas }) y "salidas_acumuladas".
+function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
+  // Calcula "Último día": se toma el último registro (suponemos que wc está ordenado cronológicamente).
+  let ultimoDia = 0;
+  if (wc && wc.length > 0) {
+    ultimoDia = wc[wc.length - 1].salidas.length;
+  }
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+  // Para los botones, se muestra la información del último registro (si existe).
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
-    const registro = salidas.find(s => s.hora === hora);
+    let registro = null;
+    if (wc && wc.length > 0) {
+      registro = wc[wc.length - 1].salidas.find(s => s.hora === hora);
+    }
     const activa = Boolean(registro);
     const estilo = activa
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
@@ -274,43 +281,50 @@ function alumnoCardHTML(clase, nombre, salidas = [], ultimaSalida = 0, totalAcum
       <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
       <div style="margin-top: 0.5rem; font-size: 0.9rem;">
-         Último día: ${ultimaSalida || 0} salidas. Total acumulado: ${totalAcumulado || 0} salidas.
+         Último día: ${ultimoDia} salidas. Total acumulado: ${salidas_acumuladas} salidas.
       </div>
     </div>
   `;
 }
 
 // Función auxiliar que asigna el listener a cada botón y re-renderiza la tarjeta tras cada clic.
-function renderCard(container, clase, nombre, salidas, ultimaSalida, totalAcumulado, ref, fecha) {
-  container.innerHTML = alumnoCardHTML(clase, nombre, salidas, ultimaSalida, totalAcumulado);
+function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, ref, fecha) {
+  container.innerHTML = alumnoCardHTML(clase, nombre, wc, salidas_acumuladas);
   container.querySelectorAll(".hour-button").forEach(button => {
     button.addEventListener("click", async function() {
       const hora = parseInt(this.dataset.hora);
       let docSnapNew = await getDoc(ref);
       let dataNew = docSnapNew.data();
-      let registroHoy = dataNew.historial ? dataNew.historial.find(r => r.fecha === fecha) : null;
-      let currentSalidas = registroHoy ? registroHoy.salidas || [] : [];
-      const existente = currentSalidas.find(r => r.hora === hora);
-      if (existente) {
-        if (existente.usuario === usuarioActual) {
-          currentSalidas = currentSalidas.filter(r => r.hora !== hora);
+      let current_wc = dataNew.wc || [];
+      let current_total = dataNew.salidas_acumuladas || 0;
+      
+      // Buscar el registro para la fecha de hoy
+      let registroHoy = current_wc.find(r => r.fecha === fecha);
+      let old_count = registroHoy ? registroHoy.salidas.length : 0;
+      if (!registroHoy) {
+        registroHoy = { fecha: fecha, salidas: [] };
+        current_wc.push(registroHoy);
+      }
+      
+      const indexSalida = registroHoy.salidas.findIndex(r => r.hora === hora);
+      if (indexSalida > -1) {
+        if (registroHoy.salidas[indexSalida].usuario === usuarioActual) {
+          registroHoy.salidas.splice(indexSalida, 1);
         } else {
           alert("No puedes desmarcar una salida registrada por otro usuario.");
           return;
         }
       } else {
-        currentSalidas.push({ hora: hora, usuario: usuarioActual });
+        registroHoy.salidas.push({ hora: hora, usuario: usuarioActual });
       }
-      const nuevoHistorial = dataNew.historial ? dataNew.historial.filter(r => r.fecha !== fecha) : [];
-      if (currentSalidas.length > 0) {
-        nuevoHistorial.push({ fecha, salidas: currentSalidas });
-      }
-      await updateDoc(ref, { historial: nuevoHistorial });
+      let new_count = registroHoy.salidas.length;
+      let diff = new_count - old_count; // Será +1 o -1.
+      current_total += diff;
+      
+      await updateDoc(ref, { wc: current_wc, salidas_acumuladas: current_total });
       docSnapNew = await getDoc(ref);
       dataNew = docSnapNew.data();
-      let registroHoyAfter = dataNew.historial ? dataNew.historial.find(r => r.fecha === fecha) : null;
-      let salidasAfter = registroHoyAfter ? registroHoyAfter.salidas : [];
-      renderCard(container, clase, nombre, salidasAfter, dataNew.ultimaSalida || 0, dataNew.totalAcumulado || 0, ref, fecha);
+      renderCard(container, clase, nombre, dataNew.wc || [], dataNew.salidas_acumuladas || 0, ref, fecha);
     });
   });
 }
@@ -331,14 +345,15 @@ async function mostrarVistaClase(clase) {
     const ref = doc(db, clase, alumnoId);
     let docSnap = await getDoc(ref);
     if (!docSnap.exists()) {
-      await setDoc(ref, { nombre, historial: [] });
+      // Al crear un alumno nuevo, se almacena con los nuevos campos.
+      await setDoc(ref, { nombre, salidas_acumuladas: 0, wc: [] });
       docSnap = await getDoc(ref);
     }
     const data = docSnap.data();
-    const registroHoy = data.historial ? data.historial.find(r => r.fecha === fecha) : null;
-    const currentSalidas = registroHoy ? registroHoy.salidas : [];
+    const wc = data.wc || [];
+    const total_acumuladas = data.salidas_acumuladas || 0;
     const cardContainer = document.createElement("div");
-    renderCard(cardContainer, clase, nombre, currentSalidas, data.ultimaSalida || 0, data.totalAcumulado || 0, ref, fecha);
+    renderCard(cardContainer, clase, nombre, wc, total_acumuladas, ref, fecha);
     app.appendChild(cardContainer);
   }
   
@@ -389,7 +404,8 @@ function procesarAlumnos(data) {
       const ref = doc(db, curso, alumnoId);
       const docSnap = await getDoc(ref);
       if (!docSnap.exists()) {
-        await setDoc(ref, { nombre, historial: [] });
+        // Crear alumno nuevo con los nuevos campos.
+        await setDoc(ref, { nombre, salidas_acumuladas: 0, wc: [] });
       }
     });
     clases = Object.keys(alumnosPorClase);
