@@ -268,10 +268,7 @@ let ultimoDia = registrosPrevios.length > 0
     if (wc && wc.length > 0) {
       // Usamos el registro del día actual, si existe, para mostrar la salida actual
       let todayTimestamp = getFechaHoy();
-let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
-if (!registroHoy) {
-  registroHoy = { fecha: todayTimestamp, salidas: [] };
-  current_wc.push(registroHoy);
+let registroHoy = wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
 }
 
     }
