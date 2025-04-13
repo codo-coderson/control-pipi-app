@@ -51,7 +51,7 @@ let clases = [];          // Ej.: ["1ESO A", "2ESO B", ...]
 let usuarioActual = null; // Se asigna tras iniciar sesión
 
 // ---------- PERSISTENCIA EN FIRESTORE ----------
-// Lee el documento meta ("meta/clases") y, para cada curso, carga los alumnos.
+// Lee el documento meta ("meta/clases") y para cada curso carga los alumnos.
 async function loadDataFromFirestore() {
   try {
     const metaRef = doc(db, "meta", "clases");
@@ -78,7 +78,7 @@ async function loadDataFromFirestore() {
 }
 
 // --- Función borrarBaseDeDatos ---
-// Borra todos los documentos de cada colección (según "clases") y el documento meta "meta/clases".
+// Borra todos los documentos de cada colección listada en "clases" y el documento meta "meta/clases".
 async function borrarBaseDeDatos() {
   try {
     for (const curso of clases) {
@@ -99,7 +99,7 @@ async function borrarBaseDeDatos() {
 }
 
 // --- Función updateHeader ---
-// Muestra el nombre (sin dominio), la hora y el enlace para cerrar sesión; si no hay usuario, solo la hora.
+// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -179,7 +179,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // --- 2) MENÚ PRINCIPAL ---
-// Muestra "Ver Clases", "Carga de alumnos" y "Borrar base de datos" (los dos últimos solo para salvador.fernandez@salesianas.org).
+// Muestra "Ver Clases", "Carga de alumnos" y "Borrar base de datos" (solo para salvador.fernandez@salesianas.org).
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
@@ -223,7 +223,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra el listado de cursos y un único botón "Volver" al final.
+// Muestra un listado de cursos y un único botón "Volver" al final.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -246,13 +246,15 @@ window.mostrarVistaClases = mostrarVistaClases;
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
 // Función para obtener la fecha (Timestamp del inicio del día).
 function getFechaHoy() {
-  return Timestamp.fromDate(new Date(new Date().setHours(0, 0, 0, 0)));
+  let hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  return Timestamp.fromDate(hoy);
 }
 
 // Función que genera la tarjeta de un alumno usando los nuevos campos:
 // "wc": array de { fecha: Timestamp, salidas: [ { hora, usuario } ] }
 // "salidas_acumuladas": número.
-// Calcula "Último día" tomando solo registros anteriores al día de hoy (basándose en toMillis()).
+// Calcula "Último día" usando solo los registros cuyo timestamp es menor que el de hoy.
 function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
   let todayTimestamp = getFechaHoy();
   let registrosPrevios = (wc || []).filter(r => r.fecha.toMillis() < todayTimestamp.toMillis());
@@ -261,7 +263,7 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
       : 0;
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   
-  // Para las salidas de hoy, buscamos el registro con fecha igual a todayTimestamp
+  // Para mostrar las salidas de hoy, buscamos el registro de hoy en el array wc.
   let registroHoy = (wc || []).find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
   let salidasHoy = registroHoy ? registroHoy.salidas : [];
   
@@ -303,7 +305,7 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
       let current_total = dataNew.salidas_acumuladas || 0;
       let todayTimestamp = getFechaHoy();
       
-      // Buscar el registro para hoy comparando el Timestamp
+      // Buscar el registro para hoy usando comparación de Timestamps.
       let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
       let old_count = registroHoy ? registroHoy.salidas.length : 0;
       if (!registroHoy) {
