@@ -20,7 +20,8 @@ import {
   setDoc,
   collection,
   getDocs,
-  deleteDoc
+  deleteDoc,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import {
   getAuth,
@@ -77,7 +78,7 @@ async function loadDataFromFirestore() {
 }
 
 // --- Función borrarBaseDeDatos ---
-// Borra todos los documentos de cada colección en "clases" y el documento meta "meta/clases".
+// Borra todos los documentos de cada colección listada en "clases" y el documento meta "meta/clases".
 async function borrarBaseDeDatos() {
   try {
     for (const curso of clases) {
@@ -98,7 +99,7 @@ async function borrarBaseDeDatos() {
 }
 
 // --- Función updateHeader ---
-// Muestra el nombre (sin dominio), la hora y un enlace para cerrar sesión.
+// Si hay usuario, muestra su nombre (sin el dominio), la hora y el enlace para cerrar sesión; sino, solo la hora.
 function updateHeader() {
   const now = new Date();
   const pad = n => n < 10 ? "0" + n : n;
@@ -222,7 +223,7 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 // --- 3) VISTA DE CLASES ---
-// Muestra el listado de cursos y un único botón "Volver" (al final).
+// Muestra un listado de cursos con un único botón "Volver" al final.
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
@@ -243,29 +244,31 @@ function mostrarVistaClases() {
 window.mostrarVistaClases = mostrarVistaClases;
 
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
-// Para obtener la fecha en formato YYYY-MM-DD.
+// Función para obtener la fecha (timestamp del inicio del día).
 function getFechaHoy() {
-  return new Date().toISOString().split("T")[0];
+  return new Date().setHours(0, 0, 0, 0);
 }
 
-// Función que genera la tarjeta de un alumno.
-// Ahora se trabajan los nuevos campos: "wc" (array de { fecha, salidas }) y "salidas_acumuladas".
+// Función que genera la tarjeta de un alumno usando los nuevos campos:
+// "wc": array de { fecha: Timestamp, salidas: [ { hora, usuario } ] }
+// "salidas_acumuladas": número.
 function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
-  // Calcula "Último día": se toma el último registro (suponemos que wc está ordenado cronológicamente).
-let fechaHoy = getFechaHoy(); // Por ejemplo, "2023-10-10"
-let registrosPrevios = (wc || []).filter(r => r.fecha < fechaHoy);
-let ultimoDia = registrosPrevios.length > 0 
-    ? registrosPrevios.reduce((prev, curr) => (prev.fecha > curr.fecha ? prev : curr)).salidas.length 
-    : 0;
-
-
+  let todayTimestamp = getFechaHoy();
+  // Calcula "Último día": se buscan los registros cuya fecha (toMillis()) es menor que todayTimestamp
+  let registrosPrevios = (wc || []).filter(r => r.fecha.toMillis() < todayTimestamp);
+  let ultimoDia = registrosPrevios.length > 0
+      ? registrosPrevios.reduce((prev, curr) => (prev.fecha.toMillis() > curr.fecha.toMillis() ? prev : curr)).salidas.length
+      : 0;
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-  // Para los botones, se muestra la información del último registro (si existe).
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
     let registro = null;
     if (wc && wc.length > 0) {
-      registro = wc[wc.length - 1].salidas.find(s => s.hora === hora);
+      // Usamos el registro del día actual, si existe, para mostrar la salida actual
+      let registroHoy = wc.find(r => r.fecha.toMillis() === todayTimestamp);
+      if (registroHoy) {
+        registro = registroHoy.salidas.find(s => s.hora === hora);
+      }
     }
     const activa = Boolean(registro);
     const estilo = activa
@@ -300,12 +303,13 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
       let dataNew = docSnapNew.data();
       let current_wc = dataNew.wc || [];
       let current_total = dataNew.salidas_acumuladas || 0;
+      let todayTimestamp = getFechaHoy();
       
-      // Buscar el registro para la fecha de hoy
-      let registroHoy = current_wc.find(r => r.fecha === fecha);
+      // Buscar el registro para hoy (comparando timestamp)
+      let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp);
       let old_count = registroHoy ? registroHoy.salidas.length : 0;
       if (!registroHoy) {
-        registroHoy = { fecha: fecha, salidas: [] };
+        registroHoy = { fecha: Timestamp.fromDate(new Date(todayTimestamp)), salidas: [] };
         current_wc.push(registroHoy);
       }
       
@@ -320,8 +324,9 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
       } else {
         registroHoy.salidas.push({ hora: hora, usuario: usuarioActual });
       }
+      
       let new_count = registroHoy.salidas.length;
-      let diff = new_count - old_count; // Será +1 o -1.
+      let diff = new_count - old_count; // +1 o -1
       current_total += diff;
       
       await updateDoc(ref, { wc: current_wc, salidas_acumuladas: current_total });
@@ -348,7 +353,7 @@ async function mostrarVistaClase(clase) {
     const ref = doc(db, clase, alumnoId);
     let docSnap = await getDoc(ref);
     if (!docSnap.exists()) {
-      // Al crear un alumno nuevo, se almacena con los nuevos campos.
+      // Al crear un alumno nuevo, almacenar con los nuevos campos.
       await setDoc(ref, { nombre, salidas_acumuladas: 0, wc: [] });
       docSnap = await getDoc(ref);
     }
