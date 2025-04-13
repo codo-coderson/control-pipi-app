@@ -21,7 +21,8 @@ import {
   collection,
   getDocs,
   deleteDoc,
-  Timestamp
+  Timestamp,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import {
   getAuth,
@@ -38,7 +39,7 @@ const auth = getAuth(appFirebase);
 
 // Insertamos meta viewport y estilos para responsive
 document.head.insertAdjacentHTML("beforeend", `
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
   <style>
     body, html {
       margin: 0;
@@ -72,10 +73,10 @@ document.head.insertAdjacentHTML("beforeend", `
 
 // --- Insertamos el header y contenedor principal ---
 document.body.insertAdjacentHTML("afterbegin", `
-  <div id="header" style="position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;"></div>
+  <div id=\"header\" style=\"position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;\"></div>
 `);
 document.body.insertAdjacentHTML("beforeend", `
-  <div id="app"></div>
+  <div id=\"app\"></div>
 `);
 
 const app = document.getElementById("app");
@@ -142,7 +143,7 @@ function updateHeader() {
     document.getElementById("header").innerHTML = `
       <div>${displayName}</div>
       <div>Hora del sistema: ${horaSistema}</div>
-      <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
+      <div><a href=\"#\" id=\"linkLogout\">Cerrar sesión</a></div>
     `;
     document.getElementById("linkLogout").onclick = async (e) => {
       e.preventDefault();
@@ -164,14 +165,14 @@ function mostrarVistaLogin() {
   app.innerHTML = `
     <h2>🔒 Login</h2>
     <div>
-      <input type="email" id="email" placeholder="Email" />
+      <input type=\"email\" id=\"email\" placeholder=\"Email\" />
     </div>
     <div>
-      <input type="password" id="password" placeholder="Contraseña" />
+      <input type=\"password\" id=\"password\" placeholder=\"Contraseña\" />
     </div>
-    <div style="margin-top: 1rem;">
-      <button id="btnLogin">Iniciar sesión</button>
-      <button id="btnReset">Recuperar contraseña</button>
+    <div style=\"margin-top: 1rem;\">
+      <button id=\"btnLogin\">Iniciar sesión</button>
+      <button id=\"btnReset\">Recuperar contraseña</button>
     </div>
   `;
   document.getElementById("btnLogin").onclick = async () => {
@@ -212,10 +213,10 @@ async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
     <h2>Menú Principal</h2>
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <button id="verClases">Ver Clases</button>
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="borrarBD">Borrar base de datos</button>` : ""}
+    <div style=\"display: flex; flex-direction: column; gap: 1rem;\">
+      <button id=\"verClases\">Ver Clases</button>
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"cargaAlumnos\">Carga de alumnos</button>` : ""}
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"borrarBD\">Borrar base de datos</button>` : ""}
     </div>
   `;
   document.getElementById("verClases").onclick = () => {
@@ -252,9 +253,9 @@ window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
-    <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
+    <div style=\"display: flex; flex-wrap: wrap; gap: 1rem;\">`;
   clases.forEach(clase => {
-    html += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
+    html += `<button class=\"clase-btn\" data-clase=\"${clase}\">🧑‍🏫 ${clase}</button>`;
   });
   html += "</div>";
   app.innerHTML = html;
@@ -294,37 +295,34 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
       : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
     const label = activa
-      ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>`
+      ? `<span style=\"font-size:0.8rem; margin-left:0.3rem;\">${registro.usuario.replace("@salesianas.org", "")}</span>`
       : "";
-    return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
-              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${estilo}">${hora}</button>
-              ${label}
-            </div>`;
+    return `<div style=\"display: inline-flex; align-items: center; margin-right: 0.5rem;\">\n              <button class=\"hour-button\" data-alumno=\"${alumnoId}\" data-hora=\"${hora}\" style=\"${estilo}\">${hora}</button>\n              ${label}\n            </div>`;
   }).join("");
   return `
-    <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-      <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
-      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
-      <div style="margin-top: 0.5rem; font-size: 0.9rem;">
-         Último día: ${ultimoDia} salidas. Total acumulado: ${salidas_acumuladas} salidas.
-      </div>
-    </div>
-  `;
+    <div style=\"border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;\">\n      <div style=\"font-weight: bold; margin-bottom: 0.5rem;\">${nombre}</div>\n      <div style=\"display: flex; flex-wrap: wrap; gap: 0.5rem;\">${botones}</div>\n      <div style=\"margin-top: 0.5rem; font-size: 0.9rem;\">\n         Último día: ${ultimoDia} salidas. Total acumulado: ${salidas_acumuladas} salidas.\n      </div>\n    </div>\n  `;
 }
 
+// Cambiamos a onSnapshot para escuchar en tiempo real
 function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, ref, fecha) {
   container.innerHTML = alumnoCardHTML(clase, nombre, wc, salidas_acumuladas);
+
   container.querySelectorAll(".hour-button").forEach(button => {
     button.addEventListener("click", async function() {
       const hora = parseInt(this.dataset.hora);
-      let docSnapNew = await getDoc(ref);
-      let dataNew = docSnapNew.data();
-      let current_wc = dataNew.wc || [];
-      let current_total = dataNew.salidas_acumuladas || 0;
-      let todayTimestamp = getFechaHoy();
+      // En lugar de getDoc, leeremos la data en onSnapshot, pero para 'old_count' necesitamos la data actual.
+      // Hacemos una lectura momentánea con getDoc, o mantenemos un obj en memoria.
+      // Mantendremos la lectura momentánea para simplificar.
 
+      let docSnap = await getDoc(ref);
+      let dataDoc = docSnap.data();
+      let current_wc = dataDoc.wc || [];
+      let current_total = dataDoc.salidas_acumuladas || 0;
+
+      let todayTimestamp = getFechaHoy();
       let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
       let old_count = registroHoy ? registroHoy.salidas.length : 0;
+
       if (!registroHoy) {
         registroHoy = { fecha: todayTimestamp, salidas: [] };
         current_wc.push(registroHoy);
@@ -347,16 +345,12 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
       current_total += diff;
 
       await updateDoc(ref, { wc: current_wc, salidas_acumuladas: current_total });
-      docSnapNew = await getDoc(ref);
-      dataNew = docSnapNew.data();
-      renderCard(container, clase, nombre, dataNew.wc || [], dataNew.salidas_acumuladas || 0, ref, fecha);
     });
   });
 }
 
 async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
-  const fecha = getFechaHoy();
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
@@ -366,17 +360,29 @@ async function mostrarVistaClase(clase) {
 
   for (const nombre of alumnos) {
     const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-    const ref = doc(db, clase, alumnoId);
-    let docSnap = await getDoc(ref);
+    const refDoc = doc(db, clase, alumnoId);
+
+    // Crear si no existe
+    let docSnap = await getDoc(refDoc);
     if (!docSnap.exists()) {
-      await setDoc(ref, { nombre, salidas_acumuladas: 0, wc: [] });
-      docSnap = await getDoc(ref);
+      await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
+      docSnap = await getDoc(refDoc);
     }
-    const data = docSnap.data();
-    const wc = data.wc || [];
-    const total_acumuladas = data.salidas_acumuladas || 0;
+
+    // Escuchamos en tiempo real
     const cardContainer = document.createElement("div");
-    renderCard(cardContainer, clase, nombre, wc, total_acumuladas, ref, fecha);
+    onSnapshot(refDoc, (snapshot) => {
+      if (!snapshot.exists()) {
+        cardContainer.innerHTML = `<div style='color:red'>Documento borrado o inexistente</div>`;
+        return;
+      }
+      const data = snapshot.data();
+      const wc = data.wc || [];
+      const total_acumuladas = data.salidas_acumuladas || 0;
+      // Render la tarjeta
+      renderCard(cardContainer, clase, nombre, wc, total_acumuladas, refDoc, getFechaHoy());
+    });
+
     app.appendChild(cardContainer);
   }
 
@@ -395,8 +401,8 @@ function parseExcelFile(file, hasHeaders, callback) {
     const workbook = XLSX.read(data, { type: 'binary' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    let json = hasHeaders 
-      ? XLSX.utils.sheet_to_json(sheet) 
+    let json = hasHeaders
+      ? XLSX.utils.sheet_to_json(sheet)
       : XLSX.utils.sheet_to_json(sheet, { header: 1 });
     callback(json);
   };
@@ -421,10 +427,10 @@ function procesarAlumnos(data) {
       }
       alumnosPorClase[curso].push(nombre);
       const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-      const ref = doc(db, curso, alumnoId);
-      const docSnap = await getDoc(ref);
+      const refDoc = doc(db, curso, alumnoId);
+      const docSnap = await getDoc(refDoc);
       if (!docSnap.exists()) {
-        await setDoc(ref, { nombre, salidas_acumuladas: 0, wc: [] });
+        await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
       }
     });
     clases = Object.keys(alumnosPorClase);
