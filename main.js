@@ -246,29 +246,34 @@ window.mostrarVistaClases = mostrarVistaClases;
 // --- 4) VISTA DE UNA CLASE Y REGISTRO DE SALIDAS ---
 // Función para obtener la fecha (timestamp del inicio del día).
 function getFechaHoy() {
-  return new Date().setHours(0, 0, 0, 0);
+  // Devuelve un Timestamp con la hora 00:00:00 del día actual
+  return Timestamp.fromDate(new Date(new Date().setHours(0, 0, 0, 0)));
 }
+
 
 // Función que genera la tarjeta de un alumno usando los nuevos campos:
 // "wc": array de { fecha: Timestamp, salidas: [ { hora, usuario } ] }
 // "salidas_acumuladas": número.
 function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
   let todayTimestamp = getFechaHoy();
-  // Calcula "Último día": se buscan los registros cuya fecha (toMillis()) es menor que todayTimestamp
-  let registrosPrevios = (wc || []).filter(r => r.fecha.toMillis() < todayTimestamp);
-  let ultimoDia = registrosPrevios.length > 0
-      ? registrosPrevios.reduce((prev, curr) => (prev.fecha.toMillis() > curr.fecha.toMillis() ? prev : curr)).salidas.length
-      : 0;
+let registrosPrevios = (wc || []).filter(r => r.fecha.toMillis() < todayTimestamp.toMillis());
+let ultimoDia = registrosPrevios.length > 0
+    ? registrosPrevios.reduce((prev, curr) => (prev.fecha.toMillis() > curr.fecha.toMillis() ? prev : curr)).salidas.length
+    : 0;
+
   const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
     let registro = null;
     if (wc && wc.length > 0) {
       // Usamos el registro del día actual, si existe, para mostrar la salida actual
-      let registroHoy = wc.find(r => r.fecha.toMillis() === todayTimestamp);
-      if (registroHoy) {
-        registro = registroHoy.salidas.find(s => s.hora === hora);
-      }
+      let todayTimestamp = getFechaHoy();
+let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
+if (!registroHoy) {
+  registroHoy = { fecha: todayTimestamp, salidas: [] };
+  current_wc.push(registroHoy);
+}
+
     }
     const activa = Boolean(registro);
     const estilo = activa
