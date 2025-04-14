@@ -312,16 +312,26 @@ function getFechaHoy() {
   return Timestamp.fromDate(hoy);
 }
 
+// Reemplazamos la lógica de \"Último día\" y \"Total acumulado\"
+// con una media de las últimas 30 entradas
 function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
+  // Ordenamos desc por fecha, tomamos las 30 más recientes
+  let sorted = [...wc].sort((a,b)=> b.fecha.toMillis() - a.fecha.toMillis());
+  let slice30 = sorted.slice(0,30);
+  // sumamos la cantidad total de salidas
+  let sumSalidas = 0;
+  slice30.forEach(d => {
+    sumSalidas += (d.salidas?.length || 0);
+  });
+  let nDias = slice30.length;
+  let media30 = nDias>0 ? sumSalidas / nDias : 0;
+  
+  // Para mostrar las salidas de hoy en los botones
   let todayTimestamp = getFechaHoy();
-  let registrosPrevios = (wc || []).filter(r => r.fecha.toMillis() < todayTimestamp.toMillis());
-  let ultimoDia = registrosPrevios.length > 0
-      ? registrosPrevios.reduce((prev, curr) => (prev.fecha.toMillis() > curr.fecha.toMillis() ? prev : curr)).salidas.length
-      : 0;
-  const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-
-  let registroHoy = (wc || []).find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
+  let registroHoy = wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
   let salidasHoy = registroHoy ? registroHoy.salidas : [];
+
+  const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
 
   const botones = Array.from({ length: 6 }, (_, i) => {
     const hora = i + 1;
@@ -338,12 +348,13 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
               ${label}
             </div>`;
   }).join("");
+
   return `
     <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
       <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
       <div style="margin-top: 0.5rem; font-size: 0.9rem;">
-         Último día: ${ultimoDia} salidas. Total acumulado: ${salidas_acumuladas} salidas.
+        Media (últimos 30 días): ${media30.toFixed(2)} salidas/día
       </div>
     </div>
   `;
@@ -405,13 +416,10 @@ async function mostrarVistaClase(clase) {
   const contenedorTarjetas = document.createElement("div");
   app.appendChild(contenedorTarjetas);
 
-  // No creamos los botones volver, los creamos después
-
   // Para controlar cuándo terminamos de cargar, creamos un array de promesas
   const loadPromises = [];
 
   for (const nombre of alumnos) {
-    // Por cada alumno, haremos un getDoc, si no existe lo creamos, y luego onSnapshot
     loadPromises.push((async () => {
       const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
       const refDoc = doc(db, clase, alumnoId);
@@ -442,15 +450,13 @@ async function mostrarVistaClase(clase) {
   // Esperamos a que terminen de cargar todos los getDoc y setDoc
   await Promise.all(loadPromises);
 
-  // Ya cargado todo, ahora sí creamos y añadimos los dos botones volver
-
+  // Botones volver, arriba y abajo
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
   btnArriba.onclick = () => {
     mostrarVistaClases();
   };
-  // Lo insertamos antes de contenedorTarjetas, para que aparezca justo bajo el título
   app.insertBefore(btnArriba, contenedorTarjetas);
 
   const btnAbajo = document.createElement("button");
