@@ -48,6 +48,7 @@ document.head.insertAdjacentHTML("beforeend", `
       overflow-x: hidden;
     }
     #app {
+      margin-top: 5rem;
       width: 100%;
       margin: 0 auto;
       padding: 0.5rem;
@@ -286,11 +287,13 @@ function mostrarVistaClases() {
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
+  if (usuarioActual === "salvador.fernandez@salesianas.org") {
   const btnAbajo = document.createElement("button");
   btnAbajo.textContent = "🔙 Volver";
   btnAbajo.style.marginTop = "2rem";
   btnAbajo.onclick = mostrarMenuPrincipal;
   app.appendChild(btnAbajo);
+}
 }
 window.mostrarVistaClases = mostrarVistaClases;
 
