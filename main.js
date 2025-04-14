@@ -12,7 +12,7 @@ const firebaseConfig = {
 
 // == IMPORTS DESDE CDN (Firebase App, Firestore y Auth) ==
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import {
+import {co
   getFirestore,
   doc,
   updateDoc,
@@ -59,21 +59,6 @@ document.head.insertAdjacentHTML("beforeend", `
       min-width: 40px;
       padding: 0.5rem;
     }
-
-
-    /* Estilos para inputs de login más anchos y con más espacio */
-    #app input[type="email"],
-    #app input[type="password"] {
-      width: 33%;
-      padding: 0.8rem;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-    }
-      .hour-button {
-        min-width: 35px;
-        font-size: 0.85rem;
-      }
-
     @media (max-width: 600px) {
       .clase-btn {
         font-size: 1rem;
@@ -83,12 +68,21 @@ document.head.insertAdjacentHTML("beforeend", `
         min-width: 35px;
         font-size: 0.85rem;
       }
-      #app input[type="email"],
-      #app input[type="password"] {
+    }
+
+    /* Estilos para inputs de login más anchos y con más espacio */
+    #app input[type="email"],
+    #app input[type="password"] {
       width: 80%;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
     }
+      .hour-button {
+        min-width: 35px;
+        font-size: 0.85rem;
+      }
     }
-    
   </style>
 `);
 
@@ -258,6 +252,7 @@ onAuthStateChanged(auth, async (user) => {
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
+    <h2>Gestión de alumnos</h2>
     <div style=\"display: flex; flex-direction: column; gap: 1rem;\">
       <button id=\"verClases\">Ver Clases</button>
       ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"cargaAlumnos\">Carga de alumnos</button>` : ""}
@@ -395,50 +390,82 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
   });
 }
 
-async function mostrarVistaClase(clase) {
+async function mostrarVistaClase(clase) {async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
+
+  // Estructura inicial
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
+
+  // Creamos los botones Volver, ambos deshabilitados al principio
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
-  btnArriba.onclick = mostrarVistaClases;
+  btnArriba.disabled = true;
+  btnArriba.style.opacity = "0.6";
+  btnArriba.onclick = () => {
+    if (!btnArriba.disabled) {
+      mostrarVistaClases();
+    }
+  };
   app.appendChild(btnArriba);
 
+  // Para controlar cuándo terminamos de cargar, creamos un array de promesas
+  const loadPromises = [];
+
   for (const nombre of alumnos) {
-    const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-    const refDoc = doc(db, clase, alumnoId);
+    // Por cada alumno, haremos un getDoc, si no existe lo creamos, y luego onSnapshot
+    loadPromises.push((async () => {
+      const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+      const refDoc = doc(db, clase, alumnoId);
 
-    // Crear si no existe
-    let docSnap = await getDoc(refDoc);
-    if (!docSnap.exists()) {
-      await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
-      docSnap = await getDoc(refDoc);
-    }
-
-    // Escuchamos en tiempo real
-    const cardContainer = document.createElement("div");
-    onSnapshot(refDoc, (snapshot) => {
-      if (!snapshot.exists()) {
-        cardContainer.innerHTML = `<div style='color:red'>Documento borrado o inexistente</div>`;
-        return;
+      let docSnap = await getDoc(refDoc);
+      if (!docSnap.exists()) {
+        await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
+        docSnap = await getDoc(refDoc);
       }
-      const data = snapshot.data();
-      const wc = data.wc || [];
-      const total_acumuladas = data.salidas_acumuladas || 0;
-      // Render la tarjeta
-      renderCard(cardContainer, clase, nombre, wc, total_acumuladas, refDoc, getFechaHoy());
-    });
 
-    app.appendChild(cardContainer);
+      // Creamos la tarjeta con suscripción a onSnapshot
+      const cardContainer = document.createElement("div");
+      onSnapshot(refDoc, (snapshot) => {
+        if (!snapshot.exists()) {
+          cardContainer.innerHTML = `<div style='color:red'>Documento borrado o inexistente</div>`;
+          return;
+        }
+        const data = snapshot.data();
+        const wc = data.wc || [];
+        const total_acumuladas = data.salidas_acumuladas || 0;
+        renderCard(cardContainer, clase, nombre, wc, total_acumuladas, refDoc, getFechaHoy());
+      });
+
+      app.appendChild(cardContainer);
+    })());
   }
 
+  // Botón de abajo, también deshabilitado
   const btnAbajo = document.createElement("button");
   btnAbajo.textContent = "🔙 Volver";
   btnAbajo.style.marginTop = "2rem";
-  btnAbajo.onclick = mostrarVistaClases;
+  btnAbajo.disabled = true;
+  btnAbajo.style.opacity = "0.6";
+  btnAbajo.onclick = () => {
+    if (!btnAbajo.disabled) {
+      mostrarVistaClases();
+    }
+  };
   app.appendChild(btnAbajo);
+
+  // Esperamos a que terminen de cargar todos los getDoc y setDoc
+  await Promise.all(loadPromises);
+
+  // Ahora habilitamos ambos botones
+  btnArriba.disabled = false;
+  btnArriba.style.opacity = "1";
+  btnAbajo.disabled = false;
+  btnAbajo.style.opacity = "1";
 }
+
 window.mostrarVistaClase = mostrarVistaClase;
+
 
 function parseExcelFile(file, hasHeaders, callback) {
   const reader = new FileReader();
