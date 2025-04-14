@@ -68,6 +68,10 @@ document.head.insertAdjacentHTML("beforeend", `
         min-width: 35px;
         font-size: 0.85rem;
       }
+      #app input[type="email"],
+      #app input[type="password"] {
+      width: 80%;
+    }
     }
 
     /* Estilos para inputs de login más anchos y con más espacio */
@@ -82,13 +86,6 @@ document.head.insertAdjacentHTML("beforeend", `
         min-width: 35px;
         font-size: 0.85rem;
       }
-    }
-
-     @media (max-width: 600px) {
-         #app input[type="email"],
-    #app input[type="password"] {
-      width: 80%;
-    }
     }
   </style>
 `);
