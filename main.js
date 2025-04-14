@@ -59,6 +59,21 @@ document.head.insertAdjacentHTML("beforeend", `
       min-width: 40px;
       padding: 0.5rem;
     }
+
+
+    /* Estilos para inputs de login más anchos y con más espacio */
+    #app input[type="email"],
+    #app input[type="password"] {
+      width: 33%;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+      .hour-button {
+        min-width: 35px;
+        font-size: 0.85rem;
+      }
+
     @media (max-width: 600px) {
       .clase-btn {
         font-size: 1rem;
@@ -73,20 +88,7 @@ document.head.insertAdjacentHTML("beforeend", `
       width: 80%;
     }
     }
-
-    /* Estilos para inputs de login más anchos y con más espacio */
-    #app input[type="email"],
-    #app input[type="password"] {
-      width: 33%;
-      padding: 0.8rem;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-    }
-      .hour-button {
-        min-width: 35px;
-        font-size: 0.85rem;
-      }
-    }
+    
   </style>
 `);
 
