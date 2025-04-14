@@ -83,6 +83,13 @@ document.head.insertAdjacentHTML("beforeend", `
         font-size: 0.85rem;
       }
     }
+
+     @media (max-width: 600px) {
+         #app input[type="email"],
+    #app input[type="password"] {
+      width: 80%;
+    }
+    }
   </style>
 `);
 
