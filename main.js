@@ -73,7 +73,7 @@ document.head.insertAdjacentHTML("beforeend", `
     /* Estilos para inputs de login más anchos y con más espacio */
     #app input[type="email"],
     #app input[type="password"] {
-      width: 80%;
+      width: 33%;
       padding: 0.8rem;
       margin-bottom: 1rem;
       font-size: 1rem;
