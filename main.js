@@ -390,7 +390,7 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
   });
 }
 
-async function mostrarVistaClase(clase) {async function mostrarVistaClase(clase) {
+async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
 
   // Estructura inicial
@@ -465,6 +465,7 @@ async function mostrarVistaClase(clase) {async function mostrarVistaClase(clase)
 }
 
 window.mostrarVistaClase = mostrarVistaClase;
+
 
 
 function parseExcelFile(file, hasHeaders, callback) {
