@@ -48,6 +48,7 @@ document.head.insertAdjacentHTML("beforeend", `
       overflow-x: hidden;
     }
     #app {
+      margin-top: 5rem;
       width: 100%;
       margin: 0 auto;
       padding: 0.5rem;
@@ -115,17 +116,40 @@ async function loadDataFromFirestore() {
 // --- Función borrarBaseDeDatos ---
 async function borrarBaseDeDatos() {
   try {
-    for (const curso of clases) {
-      const collRef = collection(db, curso);
+    // Listar TODAS las colecciones top-level y borrarlas
+    const topLevelCollections = await db.listCollections(); // OJO: db.listCollections no siempre está disponible en el SDK web.
+    for (const collRef of topLevelCollections) {
       const snapshot = await getDocs(collRef);
       snapshot.forEach(async (docSnap) => {
         await deleteDoc(docSnap.ref);
       });
+      // Opcionalmente podríamos intentar borrar la colección misma, pero
+      // Firestore no contempla "borrar" colecciones vacías; se borran solos si no hay docs.
     }
+
+    // Reset variables
+    alumnosPorClase = {};
+    clases = [];
+    alert("Toda la base de datos (todas las colecciones) ha sido borrada.");
+  } catch (err) {
+    console.error("Error al borrar la base de datos:", err);
+    alert("Error al borrar la base de datos.");
+  }
+}
     await deleteDoc(doc(db, "meta", "clases"));
     alumnosPorClase = {};
     clases = [];
     alert("Toda la base de datos ha sido borrada.");
+  } catch (err) {
+    console.error("Error al borrar la base de datos:", err);
+    alert("Error al borrar la base de datos.");
+  }
+}
+);
+    }
+    // (Ya no borramos el documento de meta/clases)
+// await deleteDoc(doc(db, "meta", "clases")); // ELIMINADO
+    alert("Se han borrado todos los alumnos.");
   } catch (err) {
     console.error("Error al borrar la base de datos:", err);
     alert("Error al borrar la base de datos.");
@@ -287,11 +311,14 @@ function mostrarVistaClases() {
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
-  const btnAbajo = document.createElement("button");
-  btnAbajo.textContent = "🔙 Volver";
-  btnAbajo.style.marginTop = "2rem";
-  btnAbajo.onclick = mostrarMenuPrincipal;
-  app.appendChild(btnAbajo);
+  // Si el usuario es salvador, mostramos el botón de volver; si no, no.
+  if (usuarioActual === "salvador.fernandez@salesianas.org") {
+    const btnAbajo = document.createElement("button");
+    btnAbajo.textContent = "🔙 Volver";
+    btnAbajo.style.marginTop = "2rem";
+    btnAbajo.onclick = mostrarMenuPrincipal;
+    app.appendChild(btnAbajo);
+  }
 }
 window.mostrarVistaClases = mostrarVistaClases;
 
