@@ -401,6 +401,12 @@ async function mostrarVistaClase(clase) {
   // Estructura inicial
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
 
+  // Creamos un contenedor para las tarjetas
+  const contenedorTarjetas = document.createElement("div");
+  app.appendChild(contenedorTarjetas);
+
+  // No creamos los botones volver, los creamos después
+
   // Para controlar cuándo terminamos de cargar, creamos un array de promesas
   const loadPromises = [];
 
@@ -429,27 +435,23 @@ async function mostrarVistaClase(clase) {
         renderCard(cardContainer, clase, nombre, wc, total_acumuladas, refDoc, getFechaHoy());
       });
 
-      app.appendChild(cardContainer);
+      contenedorTarjetas.appendChild(cardContainer);
     })());
   }
 
   // Esperamos a que terminen de cargar todos los getDoc y setDoc
   await Promise.all(loadPromises);
 
-  // Ahora creamos y añadimos los botones volver, uno arriba y otro abajo, ya habilitados
+  // Ya cargado todo, ahora sí creamos y añadimos los dos botones volver
+
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
   btnArriba.onclick = () => {
     mostrarVistaClases();
   };
-  // Insertarlo justo después del <h2>
-  const theHeading = app.querySelector("h2");
-  if (theHeading && theHeading.nextSibling) {
-    app.insertBefore(btnArriba, theHeading.nextSibling);
-  } else {
-    app.appendChild(btnArriba);
-  }
+  // Lo insertamos antes de contenedorTarjetas, para que aparezca justo bajo el título
+  app.insertBefore(btnArriba, contenedorTarjetas);
 
   const btnAbajo = document.createElement("button");
   btnAbajo.textContent = "🔙 Volver";
