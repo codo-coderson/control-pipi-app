@@ -39,7 +39,7 @@ const auth = getAuth(appFirebase);
 
 // Insertamos meta viewport y estilos para responsive
 document.head.insertAdjacentHTML("beforeend", `
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body, html {
       margin: 0;
@@ -59,21 +59,6 @@ document.head.insertAdjacentHTML("beforeend", `
       min-width: 40px;
       padding: 0.5rem;
     }
-
-
-    /* Estilos para inputs de login más anchos y con más espacio */
-    #app input[type="email"],
-    #app input[type="password"] {
-      width: 33%;
-      padding: 0.8rem;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-    }
-      .hour-button {
-        min-width: 35px;
-        font-size: 0.85rem;
-      }
-
     @media (max-width: 600px) {
       .clase-btn {
         font-size: 1rem;
@@ -83,21 +68,25 @@ document.head.insertAdjacentHTML("beforeend", `
         min-width: 35px;
         font-size: 0.85rem;
       }
-      #app input[type="email"],
-      #app input[type="password"] {
+    }
+
+    /* Estilos para inputs de login más anchos y con más espacio */
+    #app input[type="email"],
+    #app input[type="password"] {
       width: 80%;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
     }
-    }
-    
   </style>
 `);
 
 // --- Insertamos el header y contenedor principal ---
 document.body.insertAdjacentHTML("afterbegin", `
-  <div id=\"header\" style=\"position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;\"></div>
+  <div id="header" style="position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;"></div>
 `);
 document.body.insertAdjacentHTML("beforeend", `
-  <div id=\"app\"></div>
+  <div id="app"></div>
 `);
 
 const app = document.getElementById("app");
@@ -204,14 +193,14 @@ function mostrarVistaLogin() {
   app.innerHTML = `
     <h2>🔒 Login</h2>
     <div>
-      <input type=\"email\" id=\"email\" placeholder=\"Email\" />
+      <input type="email" id="email" placeholder="Email" />
     </div>
     <div>
-      <input type=\"password\" id=\"password\" placeholder=\"Contraseña\" />
+      <input type="password" id="password" placeholder="Contraseña" />
     </div>
-    <div style=\"margin-top: 1rem;\">
-      <button id=\"btnLogin\">Iniciar sesión</button>
-      <button id=\"btnReset\">Recuperar contraseña</button>
+    <div style="margin-top: 1rem;">
+      <button id="btnLogin">Iniciar sesión</button>
+      <button id="btnReset">Recuperar contraseña</button>
     </div>
   `;
   document.getElementById("btnLogin").onclick = async () => {
@@ -258,10 +247,11 @@ onAuthStateChanged(auth, async (user) => {
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
-    <div style=\"display: flex; flex-direction: column; gap: 1rem;\">
-      <button id=\"verClases\">Ver Clases</button>
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"cargaAlumnos\">Carga de alumnos</button>` : ""}
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"borrarBD\">Borrar base de datos</button>` : ""}
+    <h2>Gestión de alumnos</h2>
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <button id="verClases">Ver Clases</button>
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="borrarBD">Borrar base de datos</button>` : ""}
     </div>
   `;
   document.getElementById("verClases").onclick = () => {
@@ -297,9 +287,9 @@ window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>
-    <div style=\"display: flex; flex-wrap: wrap; gap: 1rem;\">`;
+    <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
   clases.forEach(clase => {
-    html += `<button class=\"clase-btn\" data-clase=\"${clase}\">🧑‍🏫 ${clase}</button>`;
+    html += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
   });
   html += "</div>";
   app.innerHTML = html;
@@ -307,12 +297,12 @@ function mostrarVistaClases() {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
   if (usuarioActual === "salvador.fernandez@salesianas.org") {
-  const btnAbajo = document.createElement("button");
-  btnAbajo.textContent = "🔙 Volver";
-  btnAbajo.style.marginTop = "2rem";
-  btnAbajo.onclick = mostrarMenuPrincipal;
-  app.appendChild(btnAbajo);
-}
+    const btnAbajo = document.createElement("button");
+    btnAbajo.textContent = "🔙 Volver";
+    btnAbajo.style.marginTop = "2rem";
+    btnAbajo.onclick = mostrarMenuPrincipal;
+    app.appendChild(btnAbajo);
+  }
 }
 window.mostrarVistaClases = mostrarVistaClases;
 
@@ -341,12 +331,22 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
       : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
     const label = activa
-      ? `<span style=\"font-size:0.8rem; margin-left:0.3rem;\">${registro.usuario.replace("@salesianas.org", "")}</span>`
+      ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>`
       : "";
-    return `<div style=\"display: inline-flex; align-items: center; margin-right: 0.5rem;\">\n              <button class=\"hour-button\" data-alumno=\"${alumnoId}\" data-hora=\"${hora}\" style=\"${estilo}\">${hora}</button>\n              ${label}\n            </div>`;
+    return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
+              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${estilo}">${hora}</button>
+              ${label}
+            </div>`;
   }).join("");
   return `
-    <div style=\"border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;\">\n      <div style=\"font-weight: bold; margin-bottom: 0.5rem;\">${nombre}</div>\n      <div style=\"display: flex; flex-wrap: wrap; gap: 0.5rem;\">${botones}</div>\n      <div style=\"margin-top: 0.5rem; font-size: 0.9rem;\">\n         Último día: ${ultimoDia} salidas. Total acumulado: ${salidas_acumuladas} salidas.\n      </div>\n    </div>\n  `;
+    <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+      <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
+      <div style="margin-top: 0.5rem; font-size: 0.9rem;">
+         Último día: ${ultimoDia} salidas. Total acumulado: ${salidas_acumuladas} salidas.
+      </div>
+    </div>
+  `;
 }
 
 // Cambiamos a onSnapshot para escuchar en tiempo real
@@ -397,47 +397,69 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
 
 async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
+
+  // Estructura inicial
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
+
+  // Para controlar cuándo terminamos de cargar, creamos un array de promesas
+  const loadPromises = [];
+
+  for (const nombre of alumnos) {
+    // Por cada alumno, haremos un getDoc, si no existe lo creamos, y luego onSnapshot
+    loadPromises.push((async () => {
+      const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
+      const refDoc = doc(db, clase, alumnoId);
+
+      let docSnap = await getDoc(refDoc);
+      if (!docSnap.exists()) {
+        await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
+        docSnap = await getDoc(refDoc);
+      }
+
+      // Creamos la tarjeta con suscripción a onSnapshot
+      const cardContainer = document.createElement("div");
+      onSnapshot(refDoc, (snapshot) => {
+        if (!snapshot.exists()) {
+          cardContainer.innerHTML = `<div style='color:red'>Documento borrado o inexistente</div>`;
+          return;
+        }
+        const data = snapshot.data();
+        const wc = data.wc || [];
+        const total_acumuladas = data.salidas_acumuladas || 0;
+        renderCard(cardContainer, clase, nombre, wc, total_acumuladas, refDoc, getFechaHoy());
+      });
+
+      app.appendChild(cardContainer);
+    })());
+  }
+
+  // Esperamos a que terminen de cargar todos los getDoc y setDoc
+  await Promise.all(loadPromises);
+
+  // Ahora creamos y añadimos los botones volver, uno arriba y otro abajo, ya habilitados
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
-  btnArriba.onclick = mostrarVistaClases;
-  app.appendChild(btnArriba);
-
-  for (const nombre of alumnos) {
-    const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-    const refDoc = doc(db, clase, alumnoId);
-
-    // Crear si no existe
-    let docSnap = await getDoc(refDoc);
-    if (!docSnap.exists()) {
-      await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
-      docSnap = await getDoc(refDoc);
-    }
-
-    // Escuchamos en tiempo real
-    const cardContainer = document.createElement("div");
-    onSnapshot(refDoc, (snapshot) => {
-      if (!snapshot.exists()) {
-        cardContainer.innerHTML = `<div style='color:red'>Documento borrado o inexistente</div>`;
-        return;
-      }
-      const data = snapshot.data();
-      const wc = data.wc || [];
-      const total_acumuladas = data.salidas_acumuladas || 0;
-      // Render la tarjeta
-      renderCard(cardContainer, clase, nombre, wc, total_acumuladas, refDoc, getFechaHoy());
-    });
-
-    app.appendChild(cardContainer);
+  btnArriba.onclick = () => {
+    mostrarVistaClases();
+  };
+  // Insertarlo justo después del <h2>
+  const theHeading = app.querySelector("h2");
+  if (theHeading && theHeading.nextSibling) {
+    app.insertBefore(btnArriba, theHeading.nextSibling);
+  } else {
+    app.appendChild(btnArriba);
   }
 
   const btnAbajo = document.createElement("button");
   btnAbajo.textContent = "🔙 Volver";
   btnAbajo.style.marginTop = "2rem";
-  btnAbajo.onclick = mostrarVistaClases;
+  btnAbajo.onclick = () => {
+    mostrarVistaClases();
+  };
   app.appendChild(btnAbajo);
 }
+
 window.mostrarVistaClase = mostrarVistaClase;
 
 function parseExcelFile(file, hasHeaders, callback) {
@@ -497,11 +519,11 @@ function mostrarCargaAlumnos() {
   app.innerHTML = `
     <h2>⚙️ Carga de alumnos</h2>
     <div>
-      <h3>Alumnos (cabeceras \"Alumno\" y \"Curso\")</h3>
-      <input type=\"file\" id=\"fileAlumnos\" accept=\".xlsx,.xls\" />
-      <button id=\"cargarAlumnos\">Cargar Alumnos</button>
+      <h3>Alumnos (cabeceras "Alumno" y "Curso")</h3>
+      <input type="file" id="fileAlumnos" accept=".xlsx,.xls" />
+      <button id="cargarAlumnos">Cargar Alumnos</button>
     </div>
-    <button id=\"volverMenu\" style=\"margin-top:2rem;\">🔙 Volver</button>
+    <button id="volverMenu" style="margin-top:2rem;">🔙 Volver</button>
   `;
   document.getElementById("volverMenu").onclick = mostrarMenuPrincipal;
   document.getElementById("cargarAlumnos").onclick = () => {
