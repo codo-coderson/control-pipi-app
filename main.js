@@ -48,7 +48,7 @@ document.head.insertAdjacentHTML("beforeend", `
       overflow-x: hidden;
     }
     #app {
-      margin-top: 5rem;
+      margin-top: 7rem;
       width: 100%;
       margin: 0 auto;
       padding: 0.5rem;
@@ -64,6 +64,20 @@ document.head.insertAdjacentHTML("beforeend", `
         font-size: 1rem;
         padding: 0.4rem;
       }
+      .hour-button {
+        min-width: 35px;
+        font-size: 0.85rem;
+      }
+    }
+
+    /* Estilos para inputs de login más anchos y con más espacio */
+    #app input[type="email"],
+    #app input[type="password"] {
+      width: 80%;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
       .hour-button {
         min-width: 35px;
         font-size: 0.85rem;
@@ -238,7 +252,7 @@ onAuthStateChanged(auth, async (user) => {
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
-    <h2>Menú Principal</h2>
+    <h2>Gestión de alumnos</h2>
     <div style=\"display: flex; flex-direction: column; gap: 1rem;\">
       <button id=\"verClases\">Ver Clases</button>
       ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"cargaAlumnos\">Carga de alumnos</button>` : ""}
