@@ -354,7 +354,7 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
       <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
       <div style="margin-top: 0.5rem; font-size: 0.9rem;">
-        Media (últimos 30 días): ${media30.toFixed(2)} salidas/día
+        Media últimos 30 días: ${media30.toFixed(1)} salidas/día
       </div>
     </div>
   `;
