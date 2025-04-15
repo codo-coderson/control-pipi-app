@@ -83,10 +83,10 @@ document.head.insertAdjacentHTML("beforeend", `
 
 // --- Insertamos el header y contenedor principal ---
 document.body.insertAdjacentHTML("afterbegin", `
-  <div id="header" style="position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;"></div>
+  <div id=\"header\" style=\"position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;\"></div>
 `);
 document.body.insertAdjacentHTML("beforeend", `
-  <div id="app"></div>
+  <div id=\"app\"></div>
 `);
 
 const app = document.getElementById("app");
@@ -168,7 +168,7 @@ function updateHeader() {
       <div>${displayName}</div>
       <div>${fechaSistema}</div>
       <div>${horaSistema}</div>
-      <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
+      <div><a href=\"#\" id=\"linkLogout\">Cerrar sesión</a></div>
     `;
     document.getElementById("linkLogout").onclick = async (e) => {
       e.preventDefault();
@@ -193,16 +193,12 @@ function mostrarVistaLogin() {
   app.innerHTML = `
     <h2>🔒 Login</h2>
     <div>
-      <input type="email" id="email" placeholder="Email" />
+      <input type=\"email\" id=\"email\" placeholder=\"Email\" />
     </div>
     <div>
-      <input type="password" id="password" placeholder="Contraseña" />
+      <input type=\"password\" id=\"password\" placeholder=\"Contraseña\" />
     </div>
-    <div style="margin-top: 1rem;">
-      <button id="btnLogin">Iniciar sesión</button>
-      <button id="btnReset">Recuperar contraseña</button>
-    </div>
-  `;
+    <div style=\"margin-top: 1rem;\">\n      <button id=\"btnLogin\">Iniciar sesión</button>\n      <button id=\"btnReset\">Recuperar contraseña</button>\n    </div>\n  `;
   document.getElementById("btnLogin").onclick = async () => {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -246,14 +242,7 @@ onAuthStateChanged(auth, async (user) => {
 
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
-  app.innerHTML = `
-    <h2>Gestión de alumnos</h2>
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <button id="verClases">Ver Clases</button>
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="borrarBD">Borrar base de datos</button>` : ""}
-    </div>
-  `;
+  app.innerHTML = `\n    <h2>Gestión de alumnos</h2>\n    <div style=\"display: flex; flex-direction: column; gap: 1rem;\">\n      <button id=\"verClases\">Ver Clases</button>\n      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"cargaAlumnos\">Carga de alumnos</button>` : ""}\n      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"borrarBD\">Borrar base de datos</button>` : ""}\n    </div>\n  `;
   document.getElementById("verClases").onclick = () => {
     if (clases.length === 0) {
       alert("No se encontraron datos en Firestore. Carga los excels.");
@@ -286,10 +275,9 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 function mostrarVistaClases() {
-  let html = `<h2>Selecciona una clase</h2>
-    <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
+  let html = `<h2>Selecciona una clase</h2>\n    <div style=\"display: flex; flex-wrap: wrap; gap: 1rem;\">`;
   clases.forEach(clase => {
-    html += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
+    html += `<button class=\"clase-btn\" data-clase=\"${clase}\">🧑‍🏫 ${clase}</button>`;
   });
   html += "</div>";
   app.innerHTML = html;
@@ -312,11 +300,12 @@ function getFechaHoy() {
   return Timestamp.fromDate(hoy);
 }
 
-// Reemplazamos la lógica de \"Último día\" y \"Total acumulado\"
-// con una media de las últimas 30 entradas
+// Reemplazamos la lógica de "Último día" y "Total acumulado"
+// con una media de los días que existan (máx 30). No se llena con ceros si no hubo registro.
 function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
-  // Ordenamos desc por fecha, tomamos las 30 más recientes
+  // Filtramos y ordenamos desc por fecha
   let sorted = [...wc].sort((a,b)=> b.fecha.toMillis() - a.fecha.toMillis());
+  // Tomamos hasta 30
   let slice30 = sorted.slice(0,30);
   // sumamos la cantidad total de salidas
   let sumSalidas = 0;
@@ -324,9 +313,9 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
     sumSalidas += (d.salidas?.length || 0);
   });
   let nDias = slice30.length;
-  let media30 = nDias>0 ? sumSalidas / nDias : 0;
-  
-  // Para mostrar las salidas de hoy en los botones
+  let media = (nDias>0) ? (sumSalidas / nDias) : 0;
+
+  // Salidas de hoy para los botones
   let todayTimestamp = getFechaHoy();
   let registroHoy = wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
   let salidasHoy = registroHoy ? registroHoy.salidas : [];
@@ -341,23 +330,12 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
       ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
       : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
     const label = activa
-      ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>`
+      ? `<span style=\"font-size:0.8rem; margin-left:0.3rem;\">${registro.usuario.replace("@salesianas.org", "")}</span>`
       : "";
-    return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
-              <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${estilo}">${hora}</button>
-              ${label}
-            </div>`;
+    return `<div style=\"display: inline-flex; align-items: center; margin-right: 0.5rem;\">\n              <button class=\"hour-button\" data-alumno=\"${alumnoId}\" data-hora=\"${hora}\" style=\"${estilo}\">${hora}</button>\n              ${label}\n            </div>`;
   }).join("");
 
-  return `
-    <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-      <div style="font-weight: bold; margin-bottom: 0.5rem;">${nombre}</div>
-      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${botones}</div>
-      <div style="margin-top: 0.5rem; font-size: 0.9rem;">
-        Media últimos 30 días: ${media30.toFixed(1)} salidas/día
-      </div>
-    </div>
-  `;
+  return `\n    <div style=\"border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;\">\n      <div style=\"font-weight: bold; margin-bottom: 0.5rem;\">${nombre}</div>\n      <div style=\"display: flex; flex-wrap: wrap; gap: 0.5rem;\">${botones}</div>\n      <div style=\"margin-top: 0.5rem; font-size: 0.9rem;\">\n        Media últimos 30 días: ${media.toFixed(2)} salidas/día\n      </div>\n    </div>\n  `;
 }
 
 // Cambiamos a onSnapshot para escuchar en tiempo real
@@ -416,10 +394,13 @@ async function mostrarVistaClase(clase) {
   const contenedorTarjetas = document.createElement("div");
   app.appendChild(contenedorTarjetas);
 
+  // No creamos los botones volver, los creamos después
+
   // Para controlar cuándo terminamos de cargar, creamos un array de promesas
   const loadPromises = [];
 
   for (const nombre of alumnos) {
+    // Por cada alumno, haremos un getDoc, si no existe lo creamos, y luego onSnapshot
     loadPromises.push((async () => {
       const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
       const refDoc = doc(db, clase, alumnoId);
@@ -450,13 +431,15 @@ async function mostrarVistaClase(clase) {
   // Esperamos a que terminen de cargar todos los getDoc y setDoc
   await Promise.all(loadPromises);
 
-  // Botones volver, arriba y abajo
+  // Ya cargado todo, ahora sí creamos y añadimos los dos botones volver
+
   const btnArriba = document.createElement("button");
   btnArriba.textContent = "🔙 Volver";
   btnArriba.style.marginBottom = "1rem";
   btnArriba.onclick = () => {
     mostrarVistaClases();
   };
+  // Lo insertamos antes de contenedorTarjetas, para que aparezca justo bajo el título
   app.insertBefore(btnArriba, contenedorTarjetas);
 
   const btnAbajo = document.createElement("button");
@@ -524,15 +507,7 @@ function mostrarCargaExcels() {
 }
 
 function mostrarCargaAlumnos() {
-  app.innerHTML = `
-    <h2>⚙️ Carga de alumnos</h2>
-    <div>
-      <h3>Alumnos (cabeceras "Alumno" y "Curso")</h3>
-      <input type="file" id="fileAlumnos" accept=".xlsx,.xls" />
-      <button id="cargarAlumnos">Cargar Alumnos</button>
-    </div>
-    <button id="volverMenu" style="margin-top:2rem;">🔙 Volver</button>
-  `;
+  app.innerHTML = `\n    <h2>⚙️ Carga de alumnos</h2>\n    <div>\n      <h3>Alumnos (cabeceras \"Alumno\" y \"Curso\")</h3>\n      <input type=\"file\" id=\"fileAlumnos\" accept=\".xlsx,.xls\" />\n      <button id=\"cargarAlumnos\">Cargar Alumnos</button>\n    </div>\n    <button id=\"volverMenu\" style=\"margin-top:2rem;\">🔙 Volver</button>\n  `;
   document.getElementById("volverMenu").onclick = mostrarMenuPrincipal;
   document.getElementById("cargarAlumnos").onclick = () => {
     const fileInput = document.getElementById("fileAlumnos");
