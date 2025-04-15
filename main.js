@@ -38,14 +38,18 @@ const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
 // Insertamos meta viewport y estilos para responsive
+// Aplica un estilo homogéneo (profesional, minimalista) a todos los botones y campos.
+
 document.head.insertAdjacentHTML("beforeend", `
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
   <style>
     body, html {
       margin: 0;
       padding: 0;
       max-width: 100%;
       overflow-x: hidden;
+      background-color: #5b90af; /* color base */
+      font-family: sans-serif;
     }
     #app {
       margin-top: 7rem;
@@ -53,30 +57,45 @@ document.head.insertAdjacentHTML("beforeend", `
       margin: 0 auto;
       padding: 0.5rem;
       box-sizing: border-box;
+      color: #000;
     }
-    .hour-button {
-      flex: 1;
-      min-width: 40px;
-      padding: 0.5rem;
+    /* Botones y formularios con estilo minimalista, profesional */
+    button,
+    .clase-mini,
+    .hour-button,
+    input[type=\"button\"],
+    input[type=\"submit\"],
+    input[type=\"reset\"],
+    .clase-btn {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      padding: 0.7rem 1.2rem;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: background-color 0.2s ease;
     }
-    @media (max-width: 600px) {
-      .clase-btn {
-        font-size: 1rem;
-        padding: 0.4rem;
-      }
-      .hour-button {
-        min-width: 35px;
-        font-size: 0.85rem;
-      }
+    button:hover,
+    .clase-mini:hover,
+    .clase-btn:hover {
+      background-color: #f0f0f0;
     }
-
-    /* Estilos para inputs de login más anchos y con más espacio */
-    #app input[type="email"],
-    #app input[type="password"] {
+    #app input[type=\"email\"],
+    #app input[type=\"password\"] {
       width: 80%;
-      padding: 0.8rem;
+      padding: 0.7rem;
       margin-bottom: 1rem;
       font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    .clases-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
     }
   </style>
 `);
@@ -96,7 +115,10 @@ let alumnosPorClase = {};
 let clases = [];
 let usuarioActual = null;
 
-// ---------- PERSISTENCIA EN FIRESTORE ----------
+/////////////////////////////////////////////////////////////
+// LÓGICA DE FIRESTORE
+/////////////////////////////////////////////////////////////
+
 async function loadDataFromFirestore() {
   try {
     const metaRef = doc(db, "meta", "clases");
@@ -122,7 +144,6 @@ async function loadDataFromFirestore() {
   }
 }
 
-// --- Función borrarBaseDeDatos ---
 async function borrarBaseDeDatos() {
   try {
     for (const curso of clases) {
@@ -142,6 +163,10 @@ async function borrarBaseDeDatos() {
   }
 }
 
+/////////////////////////////////////////////////////////////
+// ACTUALIZACIÓN DEL HEADER (FECHA, HORA, USUARIO)
+/////////////////////////////////////////////////////////////
+
 function updateHeader() {
   const now = new Date();
 
@@ -153,10 +178,7 @@ function updateHeader() {
   let mes = meses[now.getMonth()];
   let anio = now.getFullYear();
 
-  // Formato de fecha: "miércoles 3 de agosto de 2025"
   const fechaSistema = `${diaSemana} ${diaMes} de ${mes} de ${anio}`;
-
-  // Formato de hora 24h sin etiqueta
   const pad = n => (n < 10 ? "0" + n : n);
   const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
@@ -189,16 +211,24 @@ function updateHeader() {
 }
 setInterval(updateHeader, 1000);
 
+/////////////////////////////////////////////////////////////
+// VISTA DE LOGIN
+/////////////////////////////////////////////////////////////
+
 function mostrarVistaLogin() {
   app.innerHTML = `
     <h2>🔒 Login</h2>
     <div>
-      <input type=\"email\" id=\"email\" placeholder=\"Email\" />
+      <input type="email" id="email" placeholder="Email" />
     </div>
     <div>
-      <input type=\"password\" id=\"password\" placeholder=\"Contraseña\" />
+      <input type="password" id="password" placeholder="Contraseña" />
     </div>
-    <div style=\"margin-top: 1rem;\">\n      <button id=\"btnLogin\">Iniciar sesión</button>\n      <button id=\"btnReset\">Recuperar contraseña</button>\n    </div>\n  `;
+    <div style="margin-top: 1rem;">
+      <button id="btnLogin">Iniciar sesión</button>
+      <button id="btnReset">Recuperar contraseña</button>
+    </div>
+  `;
   document.getElementById("btnLogin").onclick = async () => {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -227,10 +257,10 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     usuarioActual = user.email;
     if (usuarioActual === "salvador.fernandez@salesianas.org") {
-      // salvador se queda con el menú principal
+      // salvador ve el menú principal
       await mostrarMenuPrincipal();
     } else {
-      // Cualquier otro usuario va directo a ver clases
+      // Usuario normal => saltamos directo a ver clases
       await loadDataFromFirestore();
       mostrarVistaClases();
     }
@@ -240,9 +270,20 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+/////////////////////////////////////////////////////////////
+// MENÚ PRINCIPAL (para salvador)
+/////////////////////////////////////////////////////////////
+
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
-  app.innerHTML = `\n    <h2>Gestión de alumnos</h2>\n    <div style=\"display: flex; flex-direction: column; gap: 1rem;\">\n      <button id=\"verClases\">Ver Clases</button>\n      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"cargaAlumnos\">Carga de alumnos</button>` : ""}\n      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"borrarBD\">Borrar base de datos</button>` : ""}\n    </div>\n  `;
+  app.innerHTML = `
+    <h2>Gestión de alumnos</h2>
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <button id="verClases">Ver Clases</button>
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="borrarBD">Borrar base de datos</button>` : ""}
+    </div>
+  `;
   document.getElementById("verClases").onclick = () => {
     if (clases.length === 0) {
       alert("No se encontraron datos en Firestore. Carga los excels.");
@@ -274,6 +315,10 @@ async function mostrarMenuPrincipal() {
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
+/////////////////////////////////////////////////////////////
+// MOSTRAR LISTA DE CLASES
+/////////////////////////////////////////////////////////////
+
 function mostrarVistaClases() {
   let html = `<h2>Selecciona una clase</h2>\n    <div style=\"display: flex; flex-wrap: wrap; gap: 1rem;\">`;
   clases.forEach(clase => {
@@ -281,9 +326,11 @@ function mostrarVistaClases() {
   });
   html += "</div>";
   app.innerHTML = html;
+
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
+
   if (usuarioActual === "salvador.fernandez@salesianas.org") {
     const btnAbajo = document.createElement("button");
     btnAbajo.textContent = "🔙 Volver";
@@ -300,14 +347,16 @@ function getFechaHoy() {
   return Timestamp.fromDate(hoy);
 }
 
-// Reemplazamos la lógica de "Último día" y "Total acumulado"
-// con una media de los días que existan (máx 30). No se llena con ceros si no hubo registro.
-function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
+/////////////////////////////////////////////////////////////
+// LÓGICA PARA MOSTRAR CLASES: Fila superior + Media de 30 días
+/////////////////////////////////////////////////////////////
+
+function alumnoCardHTML(clase, nombre, wc = []) {
   // Filtramos y ordenamos desc por fecha
   let sorted = [...wc].sort((a,b)=> b.fecha.toMillis() - a.fecha.toMillis());
   // Tomamos hasta 30
   let slice30 = sorted.slice(0,30);
-  // sumamos la cantidad total de salidas
+  // sumamos la cantidad total de salidas en esos días
   let sumSalidas = 0;
   slice30.forEach(d => {
     sumSalidas += (d.salidas?.length || 0);
@@ -335,29 +384,22 @@ function alumnoCardHTML(clase, nombre, wc = [], salidas_acumuladas = 0) {
     return `<div style=\"display: inline-flex; align-items: center; margin-right: 0.5rem;\">\n              <button class=\"hour-button\" data-alumno=\"${alumnoId}\" data-hora=\"${hora}\" style=\"${estilo}\">${hora}</button>\n              ${label}\n            </div>`;
   }).join("");
 
-  return `\n    <div style=\"border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;\">\n      <div style=\"font-weight: bold; margin-bottom: 0.5rem;\">${nombre}</div>\n      <div style=\"display: flex; flex-wrap: wrap; gap: 0.5rem;\">${botones}</div>\n      <div style=\"margin-top: 0.5rem; font-size: 0.9rem;\">\n        Media últimos 30 días: ${media.toFixed(2)} salidas/día\n      </div>\n    </div>\n  `;
+  return `\n    <div style=\"border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background-color: #fff;\">\n      <div style=\"font-weight: bold; margin-bottom: 0.5rem;\">${nombre}</div>\n      <div style=\"display: flex; flex-wrap: wrap; gap: 0.5rem;\">${botones}</div>\n      <div style=\"margin-top: 0.5rem; font-size: 0.9rem;\">\n        Media (hasta 30 días): ${media.toFixed(2)} salidas/día\n      </div>\n    </div>\n  `;
 }
 
-// Cambiamos a onSnapshot para escuchar en tiempo real
-function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, ref, fecha) {
-  container.innerHTML = alumnoCardHTML(clase, nombre, wc, salidas_acumuladas);
+function renderCard(container, clase, nombre, wc = [], ref) {
+  container.innerHTML = alumnoCardHTML(clase, nombre, wc);
 
   container.querySelectorAll(".hour-button").forEach(button => {
     button.addEventListener("click", async function() {
       const hora = parseInt(this.dataset.hora);
-      // En lugar de getDoc, leeremos la data en onSnapshot, pero para 'old_count' necesitamos la data actual.
-      // Hacemos una lectura momentánea con getDoc, o mantenemos un obj en memoria.
-      // Mantendremos la lectura momentánea para simplificar.
 
       let docSnap = await getDoc(ref);
       let dataDoc = docSnap.data();
       let current_wc = dataDoc.wc || [];
-      let current_total = dataDoc.salidas_acumuladas || 0;
 
       let todayTimestamp = getFechaHoy();
       let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
-      let old_count = registroHoy ? registroHoy.salidas.length : 0;
-
       if (!registroHoy) {
         registroHoy = { fecha: todayTimestamp, salidas: [] };
         current_wc.push(registroHoy);
@@ -372,14 +414,10 @@ function renderCard(container, clase, nombre, wc = [], salidas_acumuladas = 0, r
           return;
         }
       } else {
-        registroHoy.salidas.push({ hora: hora, usuario: usuarioActual });
+        registroHoy.salidas.push({ hora, usuario: usuarioActual });
       }
 
-      let new_count = registroHoy.salidas.length;
-      let diff = new_count - old_count;
-      current_total += diff;
-
-      await updateDoc(ref, { wc: current_wc, salidas_acumuladas: current_total });
+      await updateDoc(ref, { wc: current_wc });
     });
   });
 }
@@ -390,28 +428,48 @@ async function mostrarVistaClase(clase) {
   // Estructura inicial
   app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
 
-  // Creamos un contenedor para las tarjetas
+  // Fila con todos los botones de las clases, para saltar de una a otra
+  const filaClases = document.createElement("div");
+  filaClases.className = "clases-row";
+
+  for (const c of clases) {
+    const miniBtn = document.createElement("div");
+    miniBtn.className = "clase-mini";
+    miniBtn.textContent = c;
+    miniBtn.onclick = () => {
+      mostrarVistaClase(c);
+    };
+    filaClases.appendChild(miniBtn);
+  }
+
+  // Añadir el botón volver al final de esa fila (para TODOS los usuarios)
+  const volverBtn = document.createElement("div");
+  volverBtn.className = "clase-mini";
+  volverBtn.textContent = "🔙 Volver";
+  volverBtn.onclick = () => {
+    mostrarVistaClases();
+  };
+  filaClases.appendChild(volverBtn);
+
+  app.appendChild(filaClases);
+
+  // Contenedor de tarjetas
   const contenedorTarjetas = document.createElement("div");
   app.appendChild(contenedorTarjetas);
 
-  // No creamos los botones volver, los creamos después
-
-  // Para controlar cuándo terminamos de cargar, creamos un array de promesas
+  // Cargar docs
   const loadPromises = [];
 
   for (const nombre of alumnos) {
-    // Por cada alumno, haremos un getDoc, si no existe lo creamos, y luego onSnapshot
     loadPromises.push((async () => {
       const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
       const refDoc = doc(db, clase, alumnoId);
-
       let docSnap = await getDoc(refDoc);
       if (!docSnap.exists()) {
-        await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
+        await setDoc(refDoc, { nombre, wc: [] });
         docSnap = await getDoc(refDoc);
       }
-
-      // Creamos la tarjeta con suscripción a onSnapshot
+      // onSnapshot realtime
       const cardContainer = document.createElement("div");
       onSnapshot(refDoc, (snapshot) => {
         if (!snapshot.exists()) {
@@ -420,38 +478,20 @@ async function mostrarVistaClase(clase) {
         }
         const data = snapshot.data();
         const wc = data.wc || [];
-        const total_acumuladas = data.salidas_acumuladas || 0;
-        renderCard(cardContainer, clase, nombre, wc, total_acumuladas, refDoc, getFechaHoy());
+        renderCard(cardContainer, clase, nombre, wc, refDoc);
       });
-
       contenedorTarjetas.appendChild(cardContainer);
     })());
   }
 
-  // Esperamos a que terminen de cargar todos los getDoc y setDoc
   await Promise.all(loadPromises);
-
-  // Ya cargado todo, ahora sí creamos y añadimos los dos botones volver
-
-  const btnArriba = document.createElement("button");
-  btnArriba.textContent = "🔙 Volver";
-  btnArriba.style.marginBottom = "1rem";
-  btnArriba.onclick = () => {
-    mostrarVistaClases();
-  };
-  // Lo insertamos antes de contenedorTarjetas, para que aparezca justo bajo el título
-  app.insertBefore(btnArriba, contenedorTarjetas);
-
-  const btnAbajo = document.createElement("button");
-  btnAbajo.textContent = "🔙 Volver";
-  btnAbajo.style.marginTop = "2rem";
-  btnAbajo.onclick = () => {
-    mostrarVistaClases();
-  };
-  app.appendChild(btnAbajo);
 }
 
 window.mostrarVistaClase = mostrarVistaClase;
+
+////////////////////////////////////////////////////////
+// Lectura de Excel (solo alumnos)
+////////////////////////////////////////////////////////
 
 function parseExcelFile(file, hasHeaders, callback) {
   const reader = new FileReader();
@@ -489,11 +529,11 @@ function procesarAlumnos(data) {
       const refDoc = doc(db, curso, alumnoId);
       const docSnap = await getDoc(refDoc);
       if (!docSnap.exists()) {
-        await setDoc(refDoc, { nombre, salidas_acumuladas: 0, wc: [] });
+        await setDoc(refDoc, { nombre, wc: [] });
       }
     });
     clases = Object.keys(alumnosPorClase);
-    setDoc(doc(db, "meta", "clases"), { clases: clases });
+    setDoc(doc(db, "meta", "clases"), { clases });
     alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
   });
 }
