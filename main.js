@@ -288,26 +288,38 @@ async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
     <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-      <button class="menu-btn" $1Visitas al WC$2
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="cargaAlumnos">Carga de alumnos</button>` : ""}
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="borrarBD">Borrar base de datos</button>` : ""}
+      <button class="menu-btn" id="verClases">Visitas al WC</button>
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="cargaAlumnos">Carga de alumnos</button><button class="menu-btn" id="borrarBD">Borrar base de datos</button>` : ""}
     </div>
   `;
-  document.getElementById("verClases").onclick = () => {
-    if (clases.length === 0) {
-      alert("No se encontraron datos en Firestore. Cárgalos.");
-    } else {
-      mostrarVistaClases();
-    }
-  };
-  document.getElementById("cargaAlumnos").onclick = mostrarCargaAlumnos;
-    document.getElementById("borrarBD").onclick = async () => {
-      if (confirm("ATENCIÓN: Esto BORRARÁ TODA la base de datos. ¿Desea continuar?")) {
-        await borrarBaseDeDatos();
+
+  const btnVerClases = document.getElementById("verClases");
+  if (btnVerClases) {
+    btnVerClases.onclick = () => {
+      if (clases.length === 0) {
+        alert("No se encontraron datos en Firestore. Cárgalos.");
+      } else {
+        mostrarVistaClases();
       }
     };
-  };
+  }
+
+  if (usuarioActual === "salvador.fernandez@salesianas.org") {
+    const btnCarga = document.getElementById("cargaAlumnos");
+    if (btnCarga) {
+      btnCarga.onclick = mostrarCargaAlumnos;
+    }
+    const btnBorrar = document.getElementById("borrarBD");
+    if (btnBorrar) {
+      btnBorrar.onclick = async () => {
+        if (confirm("ATENCIÓN: Esto BORRARÁ TODA la base de datos. ¿Desea continuar?")) {
+          await borrarBaseDeDatos();
+        }
+      };
+    }
+  }
 }
+
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 /////////////////////////////////////////////////////////////
