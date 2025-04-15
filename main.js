@@ -277,7 +277,6 @@ onAuthStateChanged(auth, async (user) => {
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
-    <h2>Gestión de alumnos</h2>
     <div style="display: flex; flex-direction: column; gap: 1rem;">
       <button id="verClases">Ver Clases</button>
       ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
