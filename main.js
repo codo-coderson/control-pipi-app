@@ -163,10 +163,10 @@ let alumnosPorClase = {};
 let clases = [];
 let usuarioActual = null;
 
-// Para recordar si hoy ya hemos creado nodos
+// Para recordar si ya se llamó la daily en este día
 let lastDailyEntryCheck = "";
 function shouldEnsureToday() {
-  const todayString = new Date().toISOString().slice(0, 10);
+  const todayString = new Date().toISOString().slice(0,10);
   if (lastDailyEntryCheck === todayString) {
     return false;
   }
@@ -175,11 +175,12 @@ function shouldEnsureToday() {
 }
 
 /**
- * Crea un nodo con la fecha actual en todos los alumnos, para que tengan 0 salidas
+ * Crea un nodo con la fecha actual en todos los alumnos, con 0 salidas
  */
 async function ensureDailyEntryForAllStudents() {
-  showLoading('Un momento, creando registros en la base de datos para hoy...');
+  showLoading("Un momento, creando registros en la base de datos para hoy...");
   const today = getFechaHoy();
+
   for (const curso of clases) {
     const collRef = collection(db, curso);
     const snapshot = await getDocs(collRef);
@@ -197,7 +198,7 @@ async function ensureDailyEntryForAllStudents() {
 }
 
 /**
- * Carga la info de Firestore (meta/clases, etc.)
+ * Carga la info de Firestore
  */
 async function loadDataFromFirestore() {
   try {
@@ -241,26 +242,34 @@ async function borrarBaseDeDatos() {
 }
 
 /**
- * Actualiza header con fecha/hora y usuario
+ * Devuelve un Timestamp representando la fecha de hoy a las 00:00
+ */
+function getFechaHoy() {
+  let hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  return Timestamp.fromDate(hoy);
+}
+
+/**
+ * Actualiza el header con fecha, hora y usuario
  */
 function updateHeader() {
   const now = new Date();
 
-  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-  const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-
+  const dias = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   let diaSemana = dias[now.getDay()];
   let diaMes = now.getDate();
   let mes = meses[now.getMonth()];
   let anio = now.getFullYear();
-
   const fechaSistema = `${diaSemana} ${diaMes} de ${mes} de ${anio}`;
-  const pad = n => (n < 10 ? "0" + n : n);
+
+  const pad = n => (n<10?"0"+n:n);
   const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
   if (usuarioActual) {
     let displayName = usuarioActual.endsWith("@salesianas.org")
-      ? usuarioActual.replace("@salesianas.org", "")
+      ? usuarioActual.replace("@salesianas.org","")
       : usuarioActual;
     document.getElementById("header").innerHTML = `
       <div>${displayName}</div>
@@ -268,14 +277,14 @@ function updateHeader() {
       <div>${horaSistema}</div>
       <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
     `;
-    document.getElementById("linkLogout").onclick = async (e) => {
+    document.getElementById("linkLogout").onclick = async(e)=>{
       e.preventDefault();
       try {
         await signOut(auth);
         usuarioActual = null;
         updateHeader();
-      } catch (error) {
-        alert("Error al cerrar sesión: " + error.message);
+      }catch(err){
+        alert("Error al cerrar sesión: "+err.message);
       }
     };
   } else {
@@ -285,13 +294,13 @@ function updateHeader() {
     `;
   }
 }
-setInterval(updateHeader, 1000);
+setInterval(updateHeader,1000);
 
 /**
- * Vista de Login
+ * Vista de login
  */
-function mostrarVistaLogin() {
-  app.innerHTML = `
+function mostrarVistaLogin(){
+  app.innerHTML=`
     <h2>🔒 Login</h2>
     <div>
       <input type="email" id="email" placeholder="Email" />
@@ -304,27 +313,27 @@ function mostrarVistaLogin() {
       <button id="btnReset">Recuperar contraseña</button>
     </div>
   `;
-  document.getElementById("btnLogin").onclick = async () => {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Usuario logueado:", userCredential.user);
-    } catch (error) {
-      alert("Error al iniciar sesión: " + error.message);
+  document.getElementById("btnLogin").onclick=async()=>{
+    const email=document.getElementById("email").value;
+    const password=document.getElementById("password").value;
+    try{
+      const userCredential=await signInWithEmailAndPassword(auth,email,password);
+      console.log("Usuario logueado:",userCredential.user);
+    }catch(err){
+      alert("Error al iniciar sesión: "+err.message);
     }
   };
-  document.getElementById("btnReset").onclick = async () => {
-    const email = document.getElementById("email").value;
-    if (!email) {
+  document.getElementById("btnReset").onclick=async()=>{
+    const email=document.getElementById("email").value;
+    if(!email){
       alert("Introduce el email para recuperar la contraseña.");
       return;
     }
-    try {
-      await sendPasswordResetEmail(auth, email);
+    try{
+      await sendPasswordResetEmail(auth,email);
       alert("Se ha enviado un email para restablecer la contraseña.");
-    } catch (error) {
-      alert("Error en el envío del email: " + error.message);
+    }catch(err){
+      alert("Error en el envío del email: "+err.message);
     }
   };
 }
@@ -332,144 +341,132 @@ function mostrarVistaLogin() {
 /**
  * Observador de login
  */
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    usuarioActual = user.email;
+onAuthStateChanged(auth,async(user)=>{
+  if(user){
+    usuarioActual=user.email;
     await loadDataFromFirestore();
-
-    if (usuarioActual === "salvador.fernandez@salesianas.org") {
-      // salvador ve el menú principal
+    if(usuarioActual==="salvador.fernandez@salesianas.org"){
       await mostrarMenuPrincipal();
-    } else {
-      // Usuario normal => saltamos directo a ver clases
+    }else{
       mostrarVistaClases();
     }
-  } else {
-    usuarioActual = null;
+  }else{
+    usuarioActual=null;
     mostrarVistaLogin();
   }
 });
 
 /**
- * Menú principal (para salvador)
+ * Menu principal
  */
-async function mostrarMenuPrincipal() {
-  // Aseguramos que la BD esté cargada
+async function mostrarMenuPrincipal(){
   await loadDataFromFirestore();
-  app.innerHTML = `
+  app.innerHTML=`
     <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
       <button class="menu-btn" id="verClases">Visitas al WC</button>
       ${
-        usuarioActual === "salvador.fernandez@salesianas.org"
-          ? `<button class="menu-btn" id="cargaAlumnos">Carga de alumnos</button>
-             <button class="menu-btn" id="borrarBD">Borrar base de datos</button>`
-          : ""
+        usuarioActual==="salvador.fernandez@salesianas.org"?
+        `<button class="menu-btn" id="cargaAlumnos">Carga de alumnos</button>
+         <button class="menu-btn" id="borrarBD">Borrar base de datos</button>`:""
       }
     </div>
   `;
-
-  const btnVerClases = document.getElementById("verClases");
-  if (btnVerClases) {
-    btnVerClases.onclick = () => {
-      if (clases.length === 0) {
+  const btnVerClases=document.getElementById("verClases");
+  if(btnVerClases){
+    btnVerClases.onclick=()=>{
+      if(clases.length===0){
         alert("No se encontraron datos en Firestore. Cárgalos.");
-      } else {
+      }else{
         mostrarVistaClases();
       }
     };
   }
-
-  if (usuarioActual === "salvador.fernandez@salesianas.org") {
-    const btnCarga = document.getElementById("cargaAlumnos");
-    if (btnCarga) {
-      btnCarga.onclick = mostrarCargaAlumnos;
+  if(usuarioActual==="salvador.fernandez@salesianas.org"){
+    const btnCarga=document.getElementById("cargaAlumnos");
+    if(btnCarga){
+      btnCarga.onclick=mostrarCargaAlumnos;
     }
-    const btnBorrar = document.getElementById("borrarBD");
-    if (btnBorrar) {
-      btnBorrar.onclick = async () => {
-        if (confirm("ATENCIÓN: Esto BORRARÁ TODA la base de datos. ¿Desea continuar?")) {
+    const btnBorrar=document.getElementById("borrarBD");
+    if(btnBorrar){
+      btnBorrar.onclick=async()=>{
+        if(confirm("ATENCIÓN: Esto BORRARÁ TODA la base de datos. ¿Desea continuar?")){
           showLoading("Un momento, borrando base de datos...");
           await borrarBaseDeDatos();
           hideLoading();
-          // Sin alert, quedará en pantalla lo que sea
+          // No se hace alert
         }
       };
     }
   }
 }
-window.mostrarMenuPrincipal = mostrarMenuPrincipal;
+window.mostrarMenuPrincipal=mostrarMenuPrincipal;
 
 /**
- * Muestra la lista de clases
+ * Muestra la vista de clases
  */
-function mostrarVistaClases() {
-  // Antes de construir la vista, si no se ha creado, se hace la daily entry
-  if (shouldEnsureToday()) {
-    ensureDailyEntryForAllStudents();
+function mostrarVistaClases(){
+  // SOLO si no se ha llamado ya hoy, creamos nodos
+  if(shouldEnsureToday()){
+    showLoading("Un momento, creando registros en la base de datos para hoy...");
+    ensureDailyEntryForAllStudents().then(()=>{
+      hideLoading();
+      buildVistaClases();
+    });
+  }else{
+    buildVistaClases();
   }
+}
 
-  let html = `<h2>Selecciona una clase</h2>
+function buildVistaClases(){
+  let html=`<h2>Selecciona una clase</h2>
     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">`;
-  clases.forEach(clase => {
-    html += `<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
+  clases.forEach(clase=>{
+    html+=`<button class="clase-btn" data-clase="${clase}">🧑‍🏫 ${clase}</button>`;
   });
-  html += "</div>";
-  app.innerHTML = html;
+  html+="</div>";
+  app.innerHTML=html;
 
-  document.querySelectorAll(".clase-btn").forEach(btn => {
-    btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
+  document.querySelectorAll(".clase-btn").forEach(btn=>{
+    btn.onclick=()=>mostrarVistaClase(btn.dataset.clase);
   });
-
-  const btnAbajo = document.createElement("button");
-  btnAbajo.textContent = "🔙 Volver";
-  btnAbajo.style.marginTop = "2rem";
-  btnAbajo.onclick = mostrarMenuPrincipal;
+  const btnAbajo=document.createElement("button");
+  btnAbajo.textContent="🔙 Volver";
+  btnAbajo.style.marginTop="2rem";
+  btnAbajo.onclick=mostrarMenuPrincipal;
   app.appendChild(btnAbajo);
 }
-window.mostrarVistaClases = mostrarVistaClases;
-
-/**
- * Devuelve la fecha de hoy con hora 0:00 (Timestamp)
- */
-function getFechaHoy() {
-  let hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  return Timestamp.fromDate(hoy);
-}
+window.mostrarVistaClases=mostrarVistaClases;
 
 /**
  * Renderiza la tarjeta de un alumno
  */
-function alumnoCardHTML(clase, nombre, wc = []) {
-  // Filtramos y ordenamos desc por fecha
-  let sorted = [...wc].sort((a,b)=> b.fecha.toMillis() - a.fecha.toMillis());
+function alumnoCardHTML(clase,nombre,wc=[]){
+  // Filtramos y ordenamos desc
+  let sorted=[...wc].sort((a,b)=>b.fecha.toMillis()-a.fecha.toMillis());
   // Tomamos hasta 30
-  let slice30 = sorted.slice(0,30);
-  // sumamos la cantidad total de salidas en esos días
-  let sumSalidas = 0;
-  slice30.forEach(d => {
-    sumSalidas += (d.salidas?.length || 0);
+  let slice30=sorted.slice(0,30);
+  let sumSalidas=0;
+  slice30.forEach(d=>{
+    sumSalidas+=(d.salidas?.length||0);
   });
-  let nDias = slice30.length;
-  let media = (nDias>0) ? (sumSalidas / nDias) : 0;
+  let nDias=slice30.length;
+  let media=(nDias>0)?(sumSalidas/nDias):0;
 
-  // Salidas de hoy
-  let todayTimestamp = getFechaHoy();
-  let registroHoy = wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
-  let salidasHoy = registroHoy ? registroHoy.salidas : [];
+  let todayTimestamp=getFechaHoy();
+  let registroHoy=wc.find(r=>r.fecha.toMillis()===todayTimestamp.toMillis());
+  let salidasHoy=registroHoy?registroHoy.salidas:[];
+  const alumnoId=nombre.replace(/\s+/g,"_").replace(/,/g,"");
 
-  const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-
-  const botones = Array.from({ length: 6 }, (_, i) => {
-    const hora = i + 1;
-    let registro = salidasHoy.find(s => s.hora === hora);
-    const activa = Boolean(registro);
-    const estilo = activa
-      ? 'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
-      : 'background-color: #eee; color: #000; border: 1px solid #ccc;';
-    const label = activa
-      ? `<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org", "")}</span>`
-      : "";
+  const botones=Array.from({length:6},(_,i)=>{
+    const hora=i+1;
+    let registro=salidasHoy.find(s=>s.hora===hora);
+    const activa=Boolean(registro);
+    const estilo=activa
+      ?'background-color: #0044cc; color: #ff0; border: 1px solid #003399;'
+      :'background-color: #eee; color: #000; border: 1px solid #ccc;';
+    const label=activa
+      ?`<span style="font-size:0.8rem; margin-left:0.3rem;">${registro.usuario.replace("@salesianas.org","")}</span>`
+      :"";
     return `<div style="display: inline-flex; align-items: center; margin-right: 0.5rem;">
               <button class="hour-button" data-alumno="${alumnoId}" data-hora="${hora}" style="${estilo}">${hora}</button>
               ${label}
@@ -490,37 +487,33 @@ function alumnoCardHTML(clase, nombre, wc = []) {
 /**
  * Asigna listeners a cada botón y vuelve a renderizar al hacer click
  */
-function renderCard(container, clase, nombre, wc = [], ref) {
-  container.innerHTML = alumnoCardHTML(clase, nombre, wc);
+function renderCard(container,clase,nombre,wc=[],ref){
+  container.innerHTML=alumnoCardHTML(clase,nombre,wc);
+  container.querySelectorAll(".hour-button").forEach(button=>{
+    button.addEventListener("click",async function(){
+      const hora=parseInt(this.dataset.hora);
+      let docSnap=await getDoc(ref);
+      let dataDoc=docSnap.data();
+      let current_wc=dataDoc.wc||[];
 
-  container.querySelectorAll(".hour-button").forEach(button => {
-    button.addEventListener("click", async function() {
-      const hora = parseInt(this.dataset.hora);
-
-      let docSnap = await getDoc(ref);
-      let dataDoc = docSnap.data();
-      let current_wc = dataDoc.wc || [];
-
-      let todayTimestamp = getFechaHoy();
-      let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
-      if (!registroHoy) {
-        registroHoy = { fecha: todayTimestamp, salidas: [] };
+      let todayTimestamp=getFechaHoy();
+      let registroHoy=current_wc.find(r=>r.fecha.toMillis()===todayTimestamp.toMillis());
+      if(!registroHoy){
+        registroHoy={fecha:todayTimestamp,salidas:[]};
         current_wc.push(registroHoy);
       }
-
-      const indexSalida = registroHoy.salidas.findIndex(r => r.hora === hora);
-      if (indexSalida > -1) {
-        if (registroHoy.salidas[indexSalida].usuario === usuarioActual) {
-          registroHoy.salidas.splice(indexSalida, 1);
-        } else {
+      const indexSalida=registroHoy.salidas.findIndex(r=>r.hora===hora);
+      if(indexSalida>-1){
+        if(registroHoy.salidas[indexSalida].usuario===usuarioActual){
+          registroHoy.salidas.splice(indexSalida,1);
+        }else{
           alert("No puedes desmarcar una salida registrada por otro usuario.");
           return;
         }
-      } else {
-        registroHoy.salidas.push({ hora, usuario: usuarioActual });
+      }else{
+        registroHoy.salidas.push({hora,usuario:usuarioActual});
       }
-
-      await updateDoc(ref, { wc: current_wc });
+      await updateDoc(ref,{wc:current_wc});
     });
   });
 }
@@ -528,11 +521,11 @@ function renderCard(container, clase, nombre, wc = [], ref) {
 /**
  * Vista de una clase en particular
  */
-async function mostrarVistaClase(clase) {
-  const alumnos = alumnosPorClase[clase] || [];
+async function mostrarVistaClase(clase){
+  const alumnos=alumnosPorClase[clase]||[];
 
   // Estructura inicial
-  app.innerHTML = `
+  app.innerHTML=`
     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
       <label for="selectClases">Ir a otra clase:</label>
       <select id="selectClases"></select>
@@ -541,126 +534,117 @@ async function mostrarVistaClase(clase) {
     <button id="btnVolverDropdown2" style="margin-bottom:2rem;" onclick="mostrarVistaClases()">🔙 Volver</button>
     <h2>👨‍🏫 Clase ${clase}</h2>
   `;
-
   // Rellenar el select con las clases
-  const selectClases = document.getElementById("selectClases");
-  clases.forEach(c => {
-    const option = document.createElement("option");
-    option.value = c;
-    option.textContent = c;
+  const selectClases=document.getElementById("selectClases");
+  clases.forEach(c=>{
+    const option=document.createElement("option");
+    option.value=c;
+    option.textContent=c;
     selectClases.appendChild(option);
   });
-
-  document.getElementById("btnIr").onclick = () => {
-    const sel = selectClases.value;
+  document.getElementById("btnIr").onclick=()=>{
+    const sel=selectClases.value;
     mostrarVistaClase(sel);
   };
 
   // Contenedor de tarjetas
-  const contenedorTarjetas = document.createElement("div");
+  const contenedorTarjetas=document.createElement("div");
   app.appendChild(contenedorTarjetas);
 
   // Cargar docs
-  const loadPromises = [];
-
-  for (const nombre of alumnos) {
-    loadPromises.push((async () => {
-      const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-      const refDoc = doc(db, clase, alumnoId);
-      let docSnap = await getDoc(refDoc);
-      if (!docSnap.exists()) {
-        await setDoc(refDoc, { nombre, wc: [] });
-        docSnap = await getDoc(refDoc);
+  const loadPromises=[];
+  for(const nombre of alumnos){
+    loadPromises.push((async()=>{
+      const alumnoId=nombre.replace(/\s+/g,"_").replace(/,/g,"");
+      const refDoc=doc(db,clase,alumnoId);
+      let docSnap=await getDoc(refDoc);
+      if(!docSnap.exists()){
+        await setDoc(refDoc,{nombre, wc:[]});
+        docSnap=await getDoc(refDoc);
       }
-      // onSnapshot => cambios en tiempo real
-      const cardContainer = document.createElement("div");
-      onSnapshot(refDoc, (snapshot) => {
-        if (!snapshot.exists()) {
-          cardContainer.innerHTML = `<div style='color:red'>Documento borrado o inexistente</div>`;
+      // onSnapshot realtime
+      const cardContainer=document.createElement("div");
+      onSnapshot(refDoc,(snapshot)=>{
+        if(!snapshot.exists()){
+          cardContainer.innerHTML=`<div style='color:red'>Documento borrado o inexistente</div>`;
           return;
         }
-        const data = snapshot.data();
-        const wc = data.wc || [];
-        renderCard(cardContainer, clase, nombre, wc, refDoc);
+        const data=snapshot.data();
+        const wc=data.wc||[];
+        renderCard(cardContainer,clase,nombre,wc,refDoc);
       });
       contenedorTarjetas.appendChild(cardContainer);
     })());
   }
-
   await Promise.all(loadPromises);
 }
+window.mostrarVistaClase=mostrarVistaClase;
 
 /**
  * Lectura de Excel (solo alumnos)
  */
-function parseExcelFile(file, hasHeaders, callback) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const data = e.target.result;
-    const workbook = XLSX.read(data, { type: 'binary' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    let json = hasHeaders
+function parseExcelFile(file,hasHeaders,callback){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const data=e.target.result;
+    const workbook=XLSX.read(data,{type:'binary'});
+    const sheetName=workbook.SheetNames[0];
+    const sheet=workbook.Sheets[sheetName];
+    let json=hasHeaders
       ? XLSX.utils.sheet_to_json(sheet)
-      : XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      : XLSX.utils.sheet_to_json(sheet,{header:1});
     callback(json);
   };
   reader.readAsBinaryString(file);
 }
 
 /**
- * Procesar la carga de alumnos
+ * Procesa la carga de alumnos
  */
-function procesarAlumnos(data) {
-  console.log("Datos parseados de alumnos:", data);
-  if (!confirm("ATENCIÓN: Se BORRARÁN todos los registros anteriores de la base de datos. ¿Desea continuar?")) {
+function procesarAlumnos(data){
+  console.log("Datos parseados de alumnos:",data);
+  if(!confirm("ATENCIÓN: Se BORRARÁN todos los registros anteriores de la base de datos. ¿Desea continuar?")){
     return;
   }
-
   showLoading("Un momento, creando la base de datos...");
-
-  borrarBaseDeDatos().then(() => {
-    data.forEach(async (row) => {
-      const nombre = row.Alumno;
-      const curso = row.Curso;
-      if (!nombre || !curso) {
-        console.log("Fila incompleta:", row);
+  borrarBaseDeDatos().then(()=>{
+    data.forEach(async(row)=>{
+      const nombre=row.Alumno;
+      const curso=row.Curso;
+      if(!nombre||!curso){
+        console.log("Fila incompleta:",row);
         return;
       }
-      if (!alumnosPorClase[curso]) {
-        alumnosPorClase[curso] = [];
+      if(!alumnosPorClase[curso]){
+        alumnosPorClase[curso]=[];
       }
       alumnosPorClase[curso].push(nombre);
-      const alumnoId = nombre.replace(/\s+/g, "_").replace(/,/g, "");
-      const refDoc = doc(db, curso, alumnoId);
-      const docSnap = await getDoc(refDoc);
-      if (!docSnap.exists()) {
-        await setDoc(refDoc, { nombre, wc: [] });
+      const alumnoId=nombre.replace(/\s+/g,"_").replace(/,/g,"");
+      const refDoc=doc(db,curso,alumnoId);
+      const docSnap=await getDoc(refDoc);
+      if(!docSnap.exists()){
+        await setDoc(refDoc,{nombre, wc:[]});
       }
     });
-    clases = Object.keys(alumnosPorClase);
-    setDoc(doc(db, "meta", "clases"), { clases });
-    // Quitar alert final
+    clases=Object.keys(alumnosPorClase);
+    setDoc(doc(db,"meta","clases"),{clases});
     hideLoading();
   });
 }
 
-/**
- * No se cargan profesores
- */
-function procesarProfesores(rows) {
+function procesarProfesores(rows){
   alert("La carga de profesores ha sido deshabilitada.");
 }
 
-function mostrarCargaExcels() {
-  // No se usa.
+function mostrarCargaExcels(){
+  // No se usa
 }
 
 /**
  * Pantalla para cargar alumnos
  */
-function mostrarCargaAlumnos() {
-  app.innerHTML = `
+function mostrarCargaAlumnos(){
+  app.innerHTML=`
     <h2>⚙️ Carga de alumnos</h2>
     <div>
       <h3>Subida de hoja de cálculo de alumnos (dos columnas con cabeceras "Alumno" y "Curso")</h3>
@@ -669,14 +653,14 @@ function mostrarCargaAlumnos() {
     </div>
     <button id="volverMenu" style="margin-top:2rem;">🔙 Volver</button>
   `;
-  document.getElementById("volverMenu").onclick = mostrarMenuPrincipal;
-  document.getElementById("cargarAlumnos").onclick = () => {
-    const fileInput = document.getElementById("fileAlumnos");
-    if (fileInput.files.length === 0) {
+  document.getElementById("volverMenu").onclick=mostrarMenuPrincipal;
+  document.getElementById("cargarAlumnos").onclick=()=>{
+    const fileInput=document.getElementById("fileAlumnos");
+    if(fileInput.files.length===0){
       alert("Selecciona un archivo de alumnos.");
       return;
     }
-    const file = fileInput.files[0];
-    parseExcelFile(file, true, procesarAlumnos);
+    const file=fileInput.files[0];
+    parseExcelFile(file,true,procesarAlumnos);
   };
 }
