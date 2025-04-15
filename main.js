@@ -105,7 +105,7 @@ document.head.insertAdjacentHTML("beforeend", `
       margin-bottom: 1rem;
     }
     #btnIr, .hour-button {
-      padding: 0 !important;
+      padding: 1px 8px;
     }
   </style>
 `);
