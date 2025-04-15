@@ -41,7 +41,7 @@ const auth = getAuth(appFirebase);
 // Aplica un estilo homogéneo (profesional, minimalista) a todos los botones y campos.
 
 document.head.insertAdjacentHTML("beforeend", `
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body, html {
       margin: 0;
@@ -62,9 +62,9 @@ document.head.insertAdjacentHTML("beforeend", `
     button,
     .clase-mini,
     .hour-button,
-    input[type=\"button\"],
-    input[type=\"submit\"],
-    input[type=\"reset\"],
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"],
     .clase-btn {
       background-color: #fff;
       border: 1px solid #ccc;
@@ -80,15 +80,20 @@ document.head.insertAdjacentHTML("beforeend", `
     .clase-btn:hover {
       background-color: #f0f0f0;
     }
-    #app input[type=\"email\"],
-    #app input[type=\"password\"] {
+    #app input[type="email"],
+    #app input[type="password"] {
       width: 80%;
+      max-width: 370px;
       padding: 0.7rem;
       margin-bottom: 1rem;
       font-size: 1rem;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-family: inherit;
+    }
+
+    .menu-btn {
+      max-width: 220px;
     }
     .clases-row {
       display: flex;
@@ -101,10 +106,10 @@ document.head.insertAdjacentHTML("beforeend", `
 
 // --- Insertamos el header y contenedor principal ---
 document.body.insertAdjacentHTML("afterbegin", `
-  <div id=\"header\" style=\"position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;\"></div>
+  <div id="header" style="position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;"></div>
 `);
 document.body.insertAdjacentHTML("beforeend", `
-  <div id=\"app\"></div>
+  <div id="app"></div>
 `);
 
 const app = document.getElementById("app");
@@ -189,7 +194,7 @@ function updateHeader() {
       <div>${displayName}</div>
       <div>${fechaSistema}</div>
       <div>${horaSistema}</div>
-      <div><a href=\"#\" id=\"linkLogout\">Cerrar sesión</a></div>
+      <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
     `;
     document.getElementById("linkLogout").onclick = async (e) => {
       e.preventDefault();
@@ -277,9 +282,9 @@ async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <button id="verClases">Ver Clases</button>
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="borrarBD">Borrar base de datos</button>` : ""}
+      <button class="menu-btn" id="verClases">Ver Clases</button>
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="cargaAlumnos">Carga de alumnos</button>` : ""}
+      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="borrarBD">Borrar base de datos</button>` : ""}
     </div>
   `;
   document.getElementById("verClases").onclick = () => {
@@ -297,19 +302,6 @@ async function mostrarMenuPrincipal() {
       }
     };
   }
-//  const btnLogout = document.createElement("button");
-//  btnLogout.textContent = "Cerrar sesión";
-//  btnLogout.style.marginTop = "2rem";
-//  btnLogout.onclick = async () => {
-//    try {
-//      await signOut(auth);
-//      usuarioActual = null;
-//      updateHeader();
-//    } catch (error) {
-//      alert("Error al cerrar sesión: " + error.message);
-//    }
-//  };
-//  app.appendChild(btnLogout);
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
