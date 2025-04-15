@@ -38,14 +38,18 @@ const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
 // Insertamos meta viewport y estilos para responsive
+// Aplica un estilo unificado a todos los botones y campos de formulario en toda la app
+// E incluimos la familia sans-serif universal.
 document.head.insertAdjacentHTML("beforeend", `
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
   <style>
     body, html {
       margin: 0;
       padding: 0;
       max-width: 100%;
       overflow-x: hidden;
+      background-color: #5b90af;
+      font-family: sans-serif;
     }
     #app {
       margin-top: 7rem;
@@ -53,59 +57,56 @@ document.head.insertAdjacentHTML("beforeend", `
       margin: 0 auto;
       padding: 0.5rem;
       box-sizing: border-box;
-      /* Mantener legibilidad con un fondo claro en el interior si se desea
-         Por ahora dejamos la tipografía en negro. */
+      color: #000;
     }
-    .hour-button {
-      flex: 1;
-      min-width: 40px;
-      padding: 0.5rem;
+    /* Unificar estilos de todos los botones y campos de formulario. */
+    button,
+    .clase-mini,
+    .hour-button,
+    input[type=\"button\"],
+    input[type=\"submit\"],
+    input[type=\"reset\"],
+    .clase-btn {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      padding: 0.6rem 1rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
     }
-    @media (max-width: 600px) {
-      .clase-btn {
-        font-size: 1rem;
-        padding: 0.4rem;
-      }
-      .hour-button {
-        min-width: 35px;
-        font-size: 0.85rem;
-      }
+    button:hover,
+    .clase-mini:hover,
+    .clase-btn:hover {
+      background-color: #f0f0f0;
     }
-
-    /* Estilos para inputs de login más anchos y con más espacio */
-    #app input[type="email"],
-    #app input[type="password"] {
+    /* Para inputs de texto/email/password */
+    #app input[type=\"email\"],
+    #app input[type=\"password\"] {
       width: 80%;
       padding: 0.8rem;
       margin-bottom: 1rem;
       font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
 
+    /* Fila de clases/mini-botones. */
     .clases-row {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
-    .clase-mini {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      cursor: pointer;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-    }
-    .clase-mini:hover {
-      background-color: #f0f0f0;
-    }
   </style>
 `);
 
 // --- Insertamos el header y contenedor principal ---
 document.body.insertAdjacentHTML("afterbegin", `
-  <div id="header" style="position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;"></div>
+  <div id=\"header\" style=\"position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;\"></div>
 `);
 document.body.insertAdjacentHTML("beforeend", `
-  <div id="app"></div>
+  <div id=\"app\"></div>
 `);
 
 const app = document.getElementById("app");
@@ -115,7 +116,10 @@ let alumnosPorClase = {};
 let clases = [];
 let usuarioActual = null;
 
-// ---------- PERSISTENCIA EN FIRESTORE ----------
+/////////////////////////////////////////////////////////////
+//       Lógica de Firestore y de la app
+/////////////////////////////////////////////////////////////
+
 async function loadDataFromFirestore() {
   try {
     const metaRef = doc(db, "meta", "clases");
@@ -141,7 +145,6 @@ async function loadDataFromFirestore() {
   }
 }
 
-// --- Función borrarBaseDeDatos ---
 async function borrarBaseDeDatos() {
   try {
     for (const curso of clases) {
@@ -172,10 +175,7 @@ function updateHeader() {
   let mes = meses[now.getMonth()];
   let anio = now.getFullYear();
 
-  // Formato de fecha: "miércoles 3 de agosto de 2025"
   const fechaSistema = `${diaSemana} ${diaMes} de ${mes} de ${anio}`;
-
-  // Formato de hora 24h sin etiqueta
   const pad = n => (n < 10 ? "0" + n : n);
   const horaSistema = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
@@ -187,7 +187,7 @@ function updateHeader() {
       <div>${displayName}</div>
       <div>${fechaSistema}</div>
       <div>${horaSistema}</div>
-      <div><a href="#" id="linkLogout">Cerrar sesión</a></div>
+      <div><a href=\"#\" id=\"linkLogout\">Cerrar sesión</a></div>
     `;
     document.getElementById("linkLogout").onclick = async (e) => {
       e.preventDefault();
@@ -209,19 +209,7 @@ function updateHeader() {
 setInterval(updateHeader, 1000);
 
 function mostrarVistaLogin() {
-  app.innerHTML = `
-    <h2>🔒 Login</h2>
-    <div>
-      <input type="email" id="email" placeholder="Email" />
-    </div>
-    <div>
-      <input type="password" id="password" placeholder="Contraseña" />
-    </div>
-    <div style="margin-top: 1rem;">
-      <button id="btnLogin">Iniciar sesión</button>
-      <button id="btnReset">Recuperar contraseña</button>
-    </div>
-  `;
+  app.innerHTML = `\n    <h2>🔒 Login</h2>\n    <div>\n      <input type=\"email\" id=\"email\" placeholder=\"Email\" />\n    </div>\n    <div>\n      <input type=\"password\" id=\"password\" placeholder=\"Contraseña\" />\n    </div>\n    <div style=\"margin-top: 1rem;\">\n      <button id=\"btnLogin\">Iniciar sesión</button>\n      <button id=\"btnReset\">Recuperar contraseña</button>\n    </div>\n  `;
   document.getElementById("btnLogin").onclick = async () => {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -250,10 +238,10 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     usuarioActual = user.email;
     if (usuarioActual === "salvador.fernandez@salesianas.org") {
-      // salvador se queda con el menú principal
+      // salvador ve el menú principal
       await mostrarMenuPrincipal();
     } else {
-      // Cualquier otro usuario va directo a ver clases
+      // Usuario normal => saltamos directo a ver clases
       await loadDataFromFirestore();
       mostrarVistaClases();
     }
@@ -265,14 +253,7 @@ onAuthStateChanged(auth, async (user) => {
 
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
-  app.innerHTML = `
-    <h2>Gestión de alumnos</h2>
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <button id="verClases">Ver Clases</button>
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="cargaAlumnos">Carga de alumnos</button>` : ""}
-      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id="borrarBD">Borrar base de datos</button>` : ""}
-    </div>
-  `;
+  app.innerHTML = `\n    <h2>Gestión de alumnos</h2>\n    <div style=\"display: flex; flex-direction: column; gap: 1rem;\">\n      <button id=\"verClases\">Ver Clases</button>\n      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"cargaAlumnos\">Carga de alumnos</button>` : ""}\n      ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button id=\"borrarBD\">Borrar base de datos</button>` : ""}\n    </div>\n  `;
   document.getElementById("verClases").onclick = () => {
     if (clases.length === 0) {
       alert("No se encontraron datos en Firestore. Carga los excels.");
@@ -305,16 +286,17 @@ async function mostrarMenuPrincipal() {
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
 function mostrarVistaClases() {
-  let html = `<h2>Selecciona una clase</h2>
-    <div style=\"display: flex; flex-wrap: wrap; gap: 1rem;\">`;
+  let html = `<h2>Selecciona una clase</h2>\n    <div style=\"display: flex; flex-wrap: wrap; gap: 1rem;\">`;
   clases.forEach(clase => {
     html += `<button class=\"clase-btn\" data-clase=\"${clase}\">🧑‍🏫 ${clase}</button>`;
   });
   html += "</div>";
   app.innerHTML = html;
+
   document.querySelectorAll(".clase-btn").forEach(btn => {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
+
   if (usuarioActual === "salvador.fernandez@salesianas.org") {
     const btnAbajo = document.createElement("button");
     btnAbajo.textContent = "🔙 Volver";
@@ -331,8 +313,11 @@ function getFechaHoy() {
   return Timestamp.fromDate(hoy);
 }
 
+/////////////////////////////////////////////////////////////////////////////////
 // Reemplazamos la lógica con una "media de registros de los días que existan (máx 30)"
-// Y en la parte superior de la clase, en lugar del botón Volver, hacemos una "fila de minibotones" para cada clase.
+// En la parte superior de la clase, en lugar del botón Volver, tenemos fila de mini-botones
+// y AÑADIMOS AHÍ TAMBIÉN EL BOTÓN VOLVER PARA TODOS LOS USUARIOS.
+/////////////////////////////////////////////////////////////////////////////////
 
 function alumnoCardHTML(clase, nombre, wc = []) {
   // Filtramos y ordenamos desc por fecha
@@ -371,7 +356,6 @@ function alumnoCardHTML(clase, nombre, wc = []) {
 }
 
 function renderCard(container, clase, nombre, wc = [], ref) {
-  // Eliminamos salidas_acumuladas si ya no se usa.
   container.innerHTML = alumnoCardHTML(clase, nombre, wc);
 
   container.querySelectorAll(".hour-button").forEach(button => {
@@ -384,8 +368,6 @@ function renderCard(container, clase, nombre, wc = [], ref) {
 
       let todayTimestamp = getFechaHoy();
       let registroHoy = current_wc.find(r => r.fecha.toMillis() === todayTimestamp.toMillis());
-      let old_count = registroHoy ? registroHoy.salidas.length : 0;
-
       if (!registroHoy) {
         registroHoy = { fecha: todayTimestamp, salidas: [] };
         current_wc.push(registroHoy);
@@ -408,6 +390,10 @@ function renderCard(container, clase, nombre, wc = [], ref) {
   });
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////
+// Mostramos la vista de una clase con FilaClases + BotónVolver (al final de la fila superior)
+////////////////////////////////////////////////////////////////////////////////////////////
+
 async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
 
@@ -418,7 +404,6 @@ async function mostrarVistaClase(clase) {
   const filaClases = document.createElement("div");
   filaClases.className = "clases-row";
 
-  // Generamos un "mini" botón por cada clase
   for (const c of clases) {
     const miniBtn = document.createElement("div");
     miniBtn.className = "clase-mini";
@@ -428,6 +413,16 @@ async function mostrarVistaClase(clase) {
     };
     filaClases.appendChild(miniBtn);
   }
+
+  // Añadir el botón volver al final de esa fila (para TODOS los usuarios)
+  const volverBtn = document.createElement("div");
+  volverBtn.className = "clase-mini";
+  volverBtn.textContent = "🔙 Volver";
+  volverBtn.onclick = () => {
+    mostrarVistaClases();
+  };
+  filaClases.appendChild(volverBtn);
+
   app.appendChild(filaClases);
 
   // Contenedor de tarjetas
@@ -462,20 +457,13 @@ async function mostrarVistaClase(clase) {
   }
 
   await Promise.all(loadPromises);
-
-  // Botón final "Volver" si es salvador
-  if (usuarioActual === "salvador.fernandez@salesianas.org") {
-    const btnFinal = document.createElement("button");
-    btnFinal.textContent = "🔙 Volver";
-    btnFinal.style.marginTop = "2rem";
-    btnFinal.onclick = () => {
-      mostrarVistaClases();
-    };
-    app.appendChild(btnFinal);
-  }
 }
 
 window.mostrarVistaClase = mostrarVistaClase;
+
+////////////////////////////////////////////////////////
+// Lectura de Excel (solo alumnos)
+////////////////////////////////////////////////////////
 
 function parseExcelFile(file, hasHeaders, callback) {
   const reader = new FileReader();
