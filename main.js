@@ -48,7 +48,6 @@ document.head.insertAdjacentHTML("beforeend", `
       padding: 0;
       max-width: 100%;
       overflow-x: hidden;
-      background-color: #5b90af; /* color base */
       font-family: sans-serif;
     }
     #app {
