@@ -307,7 +307,6 @@ async function mostrarMenuPrincipal() {
       }
     };
   };
-  }
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
