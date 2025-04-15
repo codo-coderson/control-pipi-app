@@ -284,7 +284,7 @@ async function mostrarMenuPrincipal() {
   `;
   document.getElementById("verClases").onclick = () => {
     if (clases.length === 0) {
-      alert("No se encontraron datos en Firestore. Carga los excels.");
+      alert("No se encontraron datos en Firestore. Cárgalos.");
     } else {
       mostrarVistaClases();
     }
@@ -297,19 +297,19 @@ async function mostrarMenuPrincipal() {
       }
     };
   }
-  const btnLogout = document.createElement("button");
-  btnLogout.textContent = "Cerrar sesión";
-  btnLogout.style.marginTop = "2rem";
-  btnLogout.onclick = async () => {
-    try {
-      await signOut(auth);
-      usuarioActual = null;
-      updateHeader();
-    } catch (error) {
-      alert("Error al cerrar sesión: " + error.message);
-    }
-  };
-  app.appendChild(btnLogout);
+//  const btnLogout = document.createElement("button");
+//  btnLogout.textContent = "Cerrar sesión";
+//  btnLogout.style.marginTop = "2rem";
+//  btnLogout.onclick = async () => {
+//    try {
+//      await signOut(auth);
+//      usuarioActual = null;
+//      updateHeader();
+//    } catch (error) {
+//      alert("Error al cerrar sesión: " + error.message);
+//    }
+//  };
+//  app.appendChild(btnLogout);
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 
@@ -382,7 +382,7 @@ function alumnoCardHTML(clase, nombre, wc = []) {
     return `<div style=\"display: inline-flex; align-items: center; margin-right: 0.5rem;\">\n              <button class=\"hour-button\" data-alumno=\"${alumnoId}\" data-hora=\"${hora}\" style=\"${estilo}\">${hora}</button>\n              ${label}\n            </div>`;
   }).join("");
 
-  return `\n    <div style=\"border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background-color: #fff;\">\n      <div style=\"font-weight: bold; margin-bottom: 0.5rem;\">${nombre}</div>\n      <div style=\"display: flex; flex-wrap: wrap; gap: 0.5rem;\">${botones}</div>\n      <div style=\"margin-top: 0.5rem; font-size: 0.9rem;\">\n        Media (hasta 30 días): ${media.toFixed(2)} salidas/día\n      </div>\n    </div>\n  `;
+  return `\n    <div style=\"border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background-color: #fff;\">\n      <div style=\"font-weight: bold; margin-bottom: 0.5rem;\">${nombre}</div>\n      <div style=\"display: flex; flex-wrap: wrap; gap: 0.5rem;\">${botones}</div>\n      <div style=\"margin-top: 0.5rem; font-size: 0.9rem;\">\n        Media últimos 30 días: ${media.toFixed(2)} salidas/día\n      </div>\n    </div>\n  `;
 }
 
 function renderCard(container, clase, nombre, wc = [], ref) {
@@ -545,7 +545,7 @@ function mostrarCargaExcels() {
 }
 
 function mostrarCargaAlumnos() {
-  app.innerHTML = `\n    <h2>⚙️ Carga de alumnos</h2>\n    <div>\n      <h3>Alumnos (cabeceras \"Alumno\" y \"Curso\")</h3>\n      <input type=\"file\" id=\"fileAlumnos\" accept=\".xlsx,.xls\" />\n      <button id=\"cargarAlumnos\">Cargar Alumnos</button>\n    </div>\n    <button id=\"volverMenu\" style=\"margin-top:2rem;\">🔙 Volver</button>\n  `;
+  app.innerHTML = `\n    <h2>⚙️ Carga de alumnos</h2>\n    <div>\n      <h3>Subida de hoja de cálculo de alumnos (dos columnas con cabeceras \"Alumno\" y \"Curso\")</h3>\n      <input type=\"file\" id=\"fileAlumnos\" accept=\".xlsx,.xls\" />\n      <button id=\"cargarAlumnos\">Cargar Alumnos</button>\n    </div>\n    <button id=\"volverMenu\" style=\"margin-top:2rem;\">🔙 Volver</button>\n  `;
   document.getElementById("volverMenu").onclick = mostrarMenuPrincipal;
   document.getElementById("cargarAlumnos").onclick = () => {
     const fileInput = document.getElementById("fileAlumnos");
