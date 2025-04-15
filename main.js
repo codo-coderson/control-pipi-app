@@ -82,7 +82,7 @@ document.head.insertAdjacentHTML("beforeend", `
     }
     #app input[type="email"],
     #app input[type="password"] {
-      width: 80%;
+      width: 370px;
       max-width: 370px;
       padding: 0.7rem;
       margin-bottom: 1rem;
@@ -93,7 +93,10 @@ document.head.insertAdjacentHTML("beforeend", `
     }
 
     .menu-btn {
+      width: 220px;
       max-width: 220px;
+      margin: 0 auto;
+      display: block;
     }
     .clases-row {
       display: flex;
