@@ -104,6 +104,9 @@ document.head.insertAdjacentHTML("beforeend", `
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
+    #btnIr, .hour-button {
+      padding: 0 !important;
+    }
   </style>
 `);
 
@@ -424,8 +427,9 @@ async function mostrarVistaClase(clase) {
       <label for=\"selectClases\">Ir a otra clase:</label>
       <select id=\"selectClases\"></select>
       <button id=\"btnIr\">Ir</button>
-    </div>
-    <h2>👨‍🏫 Clase ${clase}</h2>
+</div>
+<button id="btnVolverDropdown2">🔙 Volver</button>
+<h2👨‍🏫 Clase ${clase}</h2>
   `;
 
   // Rellenar el select con las clases
