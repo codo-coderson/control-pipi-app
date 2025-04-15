@@ -46,7 +46,6 @@ document.head.insertAdjacentHTML("beforeend", `
       padding: 0;
       max-width: 100%;
       overflow-x: hidden;
-      background-color: #CDF2F7; /* Fondo similar al color solicitado */
     }
     #app {
       margin-top: 7rem;
