@@ -105,7 +105,7 @@ document.head.insertAdjacentHTML("beforeend", `
       margin-bottom: 1rem;
     }
     #btnIr, .hour-button {
-      padding: 1px 8px;
+      padding: 0 !important;
     }
   </style>
 `);
@@ -288,7 +288,7 @@ async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
     <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-      <button class="menu-btn" id="verClases">Ver Clases</button>
+      <button class="menu-btn" $1Visitas al WC$2
       ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="cargaAlumnos">Carga de alumnos</button>` : ""}
       ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="borrarBD">Borrar base de datos</button>` : ""}
     </div>
@@ -300,13 +300,13 @@ async function mostrarMenuPrincipal() {
       mostrarVistaClases();
     }
   };
-  if (usuarioActual === "salvador.fernandez@salesianas.org") {
-    document.getElementById("cargaAlumnos").onclick = mostrarCargaAlumnos;
+  document.getElementById("cargaAlumnos").onclick = mostrarCargaAlumnos;
     document.getElementById("borrarBD").onclick = async () => {
       if (confirm("ATENCIÓN: Esto BORRARÁ TODA la base de datos. ¿Desea continuar?")) {
         await borrarBaseDeDatos();
       }
     };
+  };
   }
 }
 window.mostrarMenuPrincipal = mostrarMenuPrincipal;
@@ -327,13 +327,11 @@ function mostrarVistaClases() {
     btn.onclick = () => mostrarVistaClase(btn.dataset.clase);
   });
 
-  if (usuarioActual === "salvador.fernandez@salesianas.org") {
-    const btnAbajo = document.createElement("button");
+  const btnAbajo = document.createElement("button");
     btnAbajo.textContent = "🔙 Volver";
     btnAbajo.style.marginTop = "2rem";
     btnAbajo.onclick = mostrarMenuPrincipal;
     app.appendChild(btnAbajo);
-  }
 }
 window.mostrarVistaClases = mostrarVistaClases;
 
@@ -428,7 +426,7 @@ async function mostrarVistaClase(clase) {
       <select id=\"selectClases\"></select>
       <button id=\"btnIr\">Ir</button>
 </div>
-<button id="btnVolverDropdown2">🔙 Volver</button>
+<button id="btnVolverDropdown2" style="margin-bottom:2rem;" onclick="mostrarVistaClases()">🔙 Volver</button>
 <h2👨‍🏫 Clase ${clase}</h2>
   `;
 
