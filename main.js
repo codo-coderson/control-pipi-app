@@ -40,6 +40,40 @@ const auth = getAuth(appFirebase);
 // Insertamos meta viewport y estilos para responsive
 // Aplica un estilo homogéneo (profesional, minimalista) a todos los botones y campos.
 
+ function showLoading(message) {
+   const overlay = document.createElement('div');
+   overlay.id = 'loadingOverlay';
+   overlay.style.position = 'fixed';
+   overlay.style.top = '0';
+   overlay.style.left = '0';
+   overlay.style.width = '100%';
+   overlay.style.height = '100%';
+   overlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
+   overlay.style.display = 'flex';
+   overlay.style.flexDirection = 'column';
+   overlay.style.alignItems = 'center';
+   overlay.style.justifyContent = 'center';
+   overlay.style.zIndex = '9999';
+
+   const box = document.createElement('div');
+   box.style.backgroundColor = '#fff';
+   box.style.padding = '1rem 2rem';
+   box.style.borderRadius = '8px';
+   box.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+   box.style.fontSize = '1.1rem';
+   box.textContent = message;
+
+   overlay.appendChild(box);
+   document.body.appendChild(overlay);
+ }
+
+ function hideLoading() {
+   const overlay = document.getElementById('loadingOverlay');
+   if (overlay) {
+     document.body.removeChild(overlay);
+   }
+ }
+
 document.head.insertAdjacentHTML("beforeend", `
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
@@ -131,6 +165,8 @@ let usuarioActual = null;
  * Esto garantiza que los alumnos que no salgan tengan igualmente un registro de "día lectivo" sin salidas.
  */
 async function ensureDailyEntryForAllStudents() {
+  showLoading('Un momento, creando registros en la base de datos para hoy...');
+
   const today = getFechaHoy();
   for (const curso of clases) {
     const collRef = collection(db, curso);
@@ -145,6 +181,7 @@ async function ensureDailyEntryForAllStudents() {
       }
     }
   }
+  hideLoading();
 }
 
 async function loadDataFromFirestore() {
@@ -539,6 +576,9 @@ function procesarAlumnos(data) {
   if (!confirm("ATENCIÓN: Se BORRARÁN todos los registros anteriores de la base de datos. ¿Desea continuar?")) {
     return;
   }
+
+  showLoading("Un momento, creando la base de datos...");
+  
   borrarBaseDeDatos().then(() => {
     data.forEach(async (row) => {
       const nombre = row.Alumno;
@@ -561,6 +601,7 @@ function procesarAlumnos(data) {
     clases = Object.keys(alumnosPorClase);
     setDoc(doc(db, "meta", "clases"), { clases });
     alert("Datos de alumnos cargados. Clases: " + clases.join(", "));
+    hideLoading();
   });
 }
 
