@@ -37,120 +37,49 @@ const appFirebase = initializeApp(firebaseConfig);
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
+// Funciones para mostrar/ocultar mensaje de carga
+function showLoading(message) {
+  const overlay = document.createElement('div');
+  overlay.id = 'loadingOverlay';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+
+  const box = document.createElement('div');
+  box.style.backgroundColor = '#fff';
+  box.style.padding = '1rem 2rem';
+  box.style.borderRadius = '8px';
+  box.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+  box.style.fontSize = '1.1rem';
+  box.textContent = message;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    document.body.removeChild(overlay);
+  }
+}
+
 // Insertamos meta viewport y estilos para responsive
 // Aplica un estilo homogéneo (profesional, minimalista) a todos los botones y campos.
 
- function showLoading(message) {
-   const overlay = document.createElement('div');
-   overlay.id = 'loadingOverlay';
-   overlay.style.position = 'fixed';
-   overlay.style.top = '0';
-   overlay.style.left = '0';
-   overlay.style.width = '100%';
-   overlay.style.height = '100%';
-   overlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
-   overlay.style.display = 'flex';
-   overlay.style.flexDirection = 'column';
-   overlay.style.alignItems = 'center';
-   overlay.style.justifyContent = 'center';
-   overlay.style.zIndex = '9999';
-
-   const box = document.createElement('div');
-   box.style.backgroundColor = '#fff';
-   box.style.padding = '1rem 2rem';
-   box.style.borderRadius = '8px';
-   box.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
-   box.style.fontSize = '1.1rem';
-   box.textContent = message;
-
-   overlay.appendChild(box);
-   document.body.appendChild(overlay);
- }
-
- function hideLoading() {
-   const overlay = document.getElementById('loadingOverlay');
-   if (overlay) {
-     document.body.removeChild(overlay);
-   }
- }
-
-document.head.insertAdjacentHTML("beforeend", `
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      max-width: 100%;
-      overflow-x: hidden;
-      font-family: sans-serif;
-    }
-    #app {
-      margin-top: 7rem;
-      width: 100%;
-      margin: 0 auto;
-      padding: 0.5rem;
-      box-sizing: border-box;
-      color: #000;
-    }
-    /* Botones y formularios con estilo minimalista, profesional */
-    button,
-    .clase-mini,
-    .hour-button,
-    input[type="button"],
-    input[type="submit"],
-    input[type="reset"],
-    .clase-btn {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      cursor: pointer;
-      padding: 0.7rem 1.2rem;
-      border-radius: 6px;
-      font-size: 1rem;
-      font-family: inherit;
-      transition: background-color 0.2s ease;
-    }
-    button:hover,
-    .clase-mini:hover,
-    .clase-btn:hover {
-      background-color: #f0f0f0;
-    }
-    #app input[type="email"],
-    #app input[type="password"] {
-      width: 370px;
-      max-width: 80%;
-      padding: 0.7rem;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-family: inherit;
-    }
-
-    .menu-btn {
-      width: 220px;
-      max-width: 80%;
-      margin: 0 auto;
-      display: block;
-    }
-    .clases-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    #btnIr, .hour-button {
-      padding: 0 !important;
-    }
-  </style>
-`);
+document.head.insertAdjacentHTML("beforeend", `\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <style>\n    body, html {\n      margin: 0;\n      padding: 0;\n      max-width: 100%;\n      overflow-x: hidden;\n      font-family: sans-serif;\n    }\n    #app {\n      margin-top: 7rem;\n      width: 100%;\n      margin: 0 auto;\n      padding: 0.5rem;\n      box-sizing: border-box;\n      color: #000;\n    }\n    /* Botones y formularios con estilo minimalista, profesional */\n    button,\n    .clase-mini,\n    .hour-button,\n    input[type="button"],\n    input[type="submit"],\n    input[type="reset"],\n    .clase-btn {\n      background-color: #fff;\n      border: 1px solid #ccc;\n      cursor: pointer;\n      padding: 0.7rem 1.2rem;\n      border-radius: 6px;\n      font-size: 1rem;\n      font-family: inherit;\n      transition: background-color 0.2s ease;\n    }\n    button:hover,\n    .clase-mini:hover,\n    .clase-btn:hover {\n      background-color: #f0f0f0;\n    }\n    #app input[type="email"],\n    #app input[type="password"] {\n      width: 370px;\n      max-width: 80%;\n      padding: 0.7rem;\n      margin-bottom: 1rem;\n      font-size: 1rem;\n      border: 1px solid #ccc;\n      border-radius: 6px;\n      font-family: inherit;\n    }\n\n    .menu-btn {\n      width: 220px;\n      max-width: 80%;\n      margin: 0 auto;\n      display: block;\n    }\n    .clases-row {\n      display: flex;\n      flex-wrap: wrap;\n      gap: 0.5rem;\n      margin-bottom: 1rem;\n    }\n    #btnIr, .hour-button {\n      padding: 0 !important;\n    }\n  </style>\n`);
 
 // --- Insertamos el header y contenedor principal ---
-document.body.insertAdjacentHTML("afterbegin", `
-  <div id="header" style="position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;"></div>
-`);
-document.body.insertAdjacentHTML("beforeend", `
-  <div id="app"></div>
-`);
+document.body.insertAdjacentHTML("afterbegin", `\n  <div id=\"header\" style=\"position: fixed; top: 0; right: 0; padding: 0.5rem; background: #fff; text-align: right; z-index: 1000; width: auto;\"></div>\n`);
+document.body.insertAdjacentHTML("beforeend", `\n  <div id=\"app\"></div>\n`);
 
 const app = document.getElementById("app");
 
@@ -160,9 +89,21 @@ let clases = [];
 let usuarioActual = null;
 
 /////////////////////////////////////////////////////////////
+// Eliminamos la llamada forzosa en onAuthStateChanged, e introducimos "shouldEnsureToday".
+// Llamaremos a ensureDailyEntryForAllStudents() en mostrarVistaClases() si no lo hemos hecho hoy.
+
+let lastDailyEntryCheck = "";
+function shouldEnsureToday() {
+  const todayString = new Date().toISOString().slice(0, 10);
+  if (lastDailyEntryCheck === todayString) {
+    return false;
+  }
+  lastDailyEntryCheck = todayString;
+  return true;
+}
+
 /**
- * Cada vez que un usuario cualquiera entra en la app, creamos un nodo con la fecha actual en todos los alumnos.
- * Esto garantiza que los alumnos que no salgan tengan igualmente un registro de "día lectivo" sin salidas.
+ * Cada vez que el usuario abre "Selecciona una clase" por primera vez en el día, creamos un nodo con la fecha actual.
  */
 async function ensureDailyEntryForAllStudents() {
   showLoading('Un momento, creando registros en la base de datos para hoy...');
@@ -322,17 +263,12 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     usuarioActual = user.email;
 
-    // Tras cargar la BD, añadimos el nodo con la fecha actual en todos los alumnos.
+    // Eliminamos la llamada "ensureDailyEntryForAllStudents" aquí.
     await loadDataFromFirestore();
-    await ensureDailyEntryForAllStudents();
 
     if (usuarioActual === "salvador.fernandez@salesianas.org") {
-      // salvador ve el menú principal
       await mostrarMenuPrincipal();
     } else {
-      // Usuario normal => saltamos directo a ver clases
-    // Notamos que ya hemos hecho loadDataFromFirestore y ensureDailyEntryForAllStudents arriba
-
       mostrarVistaClases();
     }
   } else {
@@ -388,6 +324,11 @@ window.mostrarMenuPrincipal = mostrarMenuPrincipal;
 /////////////////////////////////////////////////////////////
 
 function mostrarVistaClases() {
+  // Antes de construir la vista, revisamos si es necesario ensureDailyEntryForAllStudents.
+  if (shouldEnsureToday()) {
+    ensureDailyEntryForAllStudents();
+  }
+
   let html = `<h2>Selecciona una clase</h2>\n    <div style=\"display: flex; flex-wrap: wrap; gap: 1rem;\">`;
   clases.forEach(clase => {
     html += `<button class=\"clase-btn\" data-clase=\"${clase}\">🧑‍🏫 ${clase}</button>`;
@@ -492,15 +433,7 @@ async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
 
   // Estructura inicial
-  app.innerHTML = `
-    <div style=\"display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;\">
-      <label for=\"selectClases\">Ir a otra clase:</label>
-      <select id=\"selectClases\"></select>
-      <button id=\"btnIr\">Ir</button>
-</div>
-<button id="btnVolverDropdown2" style="margin-bottom:2rem;" onclick="mostrarVistaClases()">🔙 Volver</button>
-<h2>👨‍🏫 Clase ${clase}</h2>
-  `;
+  app.innerHTML = `\n    <div style=\"display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;\">\n      <label for=\"selectClases\">Ir a otra clase:</label>\n      <select id=\"selectClases\"></select>\n      <button id=\"btnIr\">Ir</button>\n</div>\n<button id=\"btnVolverDropdown2\" style=\"margin-bottom:2rem;\" onclick=\"mostrarVistaClases()\">🔙 Volver</button>\n<h2>👨‍🏫 Clase ${clase}</h2>\n  `;
 
   // Rellenar el select con las clases
   const selectClases = document.getElementById("selectClases");
