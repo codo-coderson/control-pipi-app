@@ -126,7 +126,6 @@ let clases = [];
 let usuarioActual = null;
 
 /////////////////////////////////////////////////////////////
-$1
 /**
  * Cada vez que un usuario cualquiera entra en la app, creamos un nodo con la fecha actual en todos los alumnos.
  * Esto garantiza que los alumnos que no salgan tengan igualmente un registro de "día lectivo" sin salidas.
@@ -463,7 +462,7 @@ async function mostrarVistaClase(clase) {
       <button id=\"btnIr\">Ir</button>
 </div>
 <button id="btnVolverDropdown2" style="margin-bottom:2rem;" onclick="mostrarVistaClases()">🔙 Volver</button>
-<h2👨‍🏫 Clase ${clase}</h2>
+<h2>👨‍🏫 Clase ${clase}</h2>
   `;
 
   // Rellenar el select con las clases
