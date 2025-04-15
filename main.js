@@ -284,7 +284,7 @@ onAuthStateChanged(auth, async (user) => {
 async function mostrarMenuPrincipal() {
   await loadDataFromFirestore();
   app.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
       <button class="menu-btn" id="verClases">Ver Clases</button>
       ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="cargaAlumnos">Carga de alumnos</button>` : ""}
       ${usuarioActual === "salvador.fernandez@salesianas.org" ? `<button class="menu-btn" id="borrarBD">Borrar base de datos</button>` : ""}
@@ -419,32 +419,28 @@ async function mostrarVistaClase(clase) {
   const alumnos = alumnosPorClase[clase] || [];
 
   // Estructura inicial
-  app.innerHTML = `<h2>👨‍🏫 Clase ${clase}</h2>`;
+  app.innerHTML = `
+    <div style=\"display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;\">
+      <label for=\"selectClases\">Ir a otra clase:</label>
+      <select id=\"selectClases\"></select>
+      <button id=\"btnIr\">Ir</button>
+    </div>
+    <h2>👨‍🏫 Clase ${clase}</h2>
+  `;
 
-  // Fila con todos los botones de las clases, para saltar de una a otra
-  const filaClases = document.createElement("div");
-  filaClases.className = "clases-row";
+  // Rellenar el select con las clases
+  const selectClases = document.getElementById("selectClases");
+  clases.forEach(c => {
+    const option = document.createElement("option");
+    option.value = c;
+    option.textContent = c;
+    selectClases.appendChild(option);
+  });
 
-  for (const c of clases) {
-    const miniBtn = document.createElement("div");
-    miniBtn.className = "clase-mini";
-    miniBtn.textContent = c;
-    miniBtn.onclick = () => {
-      mostrarVistaClase(c);
-    };
-    filaClases.appendChild(miniBtn);
-  }
-
-  // Añadir el botón volver al final de esa fila (para TODOS los usuarios)
-  const volverBtn = document.createElement("div");
-  volverBtn.className = "clase-mini";
-  volverBtn.textContent = "🔙 Volver";
-  volverBtn.onclick = () => {
-    mostrarVistaClases();
+  document.getElementById("btnIr").onclick = () => {
+    const sel = selectClases.value;
+    mostrarVistaClase(sel);
   };
-  filaClases.appendChild(volverBtn);
-
-  app.appendChild(filaClases);
 
   // Contenedor de tarjetas
   const contenedorTarjetas = document.createElement("div");
