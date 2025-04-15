@@ -1,3 +1,13 @@
+/*
+COSAS AUN NO HECHAS PERO FUI INTERRUMPIDO POR LIMITES DE CUOTA EN FIRESTORE Y EN CHATGPT
+
+- ESTO AUN NO PASA: Al abrir “Selecciona una clase” por primera vez en el día, se llama a ensureDailyEntryForAllStudents() y se muestra un showLoading(...). Una vez termina ensureDailyEntryForAllStudents(), ocultamos el loading y construimos la interfaz de selección de clases.
+A LO MEJOR SE PUEDE CONSEGUIR CUANDO SE PULSE EN EL MENÚ PRINCIPAL "VISITAS AL WC", ESO SÍ, ANTES HAY QUE HACER REAPARECER EL MENÚ PRINCIPAL PARA USUARIOS NO SALVA
+- AÑADE CLASE boton-mini A BOTONES "ir", "Cargar Alumnos" Y A BOTONES DENTRO DE CADA ALUMNO, YAHABÍA EN UNA VERSIÓN ANTERIOR UNA CLASE  .boton-mini {padding: 1px 8px !important;}, CHATGPT LA JODIÓ
+- LOGO SALESIANAS EN LA PARTE IZQUIERDA DE LA CABECERA DONDE YA APARECE LA FECHA Y HORA
+
+*/
+
 console.log("🟢 main.js cargado correctamente");
 
 // === CONFIG DE FIREBASE (ya configurada) ===
